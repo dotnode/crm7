@@ -4906,11 +4906,20 @@ PAGE_RENDERERS['td-report'] = () => {
 };
 
 PAGE_RENDERERS['td-follow-dynamics'] = () => `
-  <div class="page-header"><h1 class="page-title">跟进动态</h1></div>
+  <div class="page-header">
+    <h1 class="page-title">跟进动态</h1>
+    <div class="page-actions"><button class="btn btn-primary" onclick="openWriteFollowDrawer()">+ 写跟进</button></div>
+  </div>
   <div class="filter-bar mb-12">
     <select class="filter-select"><option>全部成员</option><option>Bambi</option><option>Camila</option><option>Jade</option></select>
-    <select class="filter-select"><option>全部类型</option><option>邮件</option><option>跟进记录</option><option>WhatsApp</option></select>
+    <select class="filter-select"><option>全部类型</option><option>邮件</option><option>跟进记录</option><option>WhatsApp</option><option>TM</option></select>
     <input class="filter-input" type="date" />
+  </div>
+  <div class="toggle-group mb-12">
+    <button class="toggle-btn active" onclick="switchToggle(this)">全部</button>
+    <button class="toggle-btn" onclick="switchToggle(this)">今日</button>
+    <button class="toggle-btn" onclick="switchToggle(this)">本周</button>
+    <button class="toggle-btn" onclick="switchToggle(this)">本月</button>
   </div>
   <div class="timeline">
     ${[{time:'2026-06-21 14:30',user:'Bambi',type:'邮件',desc:'发送邮件给 john@buyer.com，主题: Re: Product Catalog'},
@@ -4921,6 +4930,25 @@ PAGE_RENDERERS['td-follow-dynamics'] = () => `
     ].map(d => `<div class="timeline-item"><div class="tl-time">${d.time}</div><div class="tl-title">${d.user} · <span class="table-tag primary">${d.type}</span></div><div class="tl-desc">${d.desc}</div></div>`).join('')}
   </div>
 `;
+
+function openWriteFollowDrawer() {
+  openDrawer('写跟进', `
+    ${renderFormField('跟进对象', 'text', {placeholder:'搜索关联客户/线索/商机'})}
+    ${renderFormField('跟进方式', 'select', {options:['电话','邮件','WhatsApp','TM','拜访','其他']})}
+    ${renderFormField('跟进时间', 'datetime', {value:'2026-06-21 14:30'})}
+    <div class="form-section">
+      <div class="form-section-title">跟进内容</div>
+      <div class="flex gap-8 mb-8">
+        <button class="btn btn-sm" style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none" onclick="alert('AI 已根据近期沟通生成跟进内容')">🤖 AI 写跟进</button>
+        <select class="filter-select" onchange="alert('已套用模板：'+this.value)"><option>选择跟进模板</option><option>询盘首次跟进</option><option>报价后跟进</option><option>样品确认跟进</option><option>催单跟进</option></select>
+      </div>
+      <textarea class="form-textarea" placeholder="请输入跟进内容..." style="min-height:120px"></textarea>
+    </div>
+    ${renderFormField('下次跟进时间', 'datetime', {})}
+    ${renderFormField('提醒方式', 'select', {options:['不提醒','系统提醒','钉钉提醒']})}
+  `, '<button class="btn" onclick="closeDrawer()">取消</button><button class="btn btn-primary" onclick="closeDrawer()">保存</button>');
+}
+
 
 PAGE_RENDERERS['td-subordinate'] = () => `
   <div class="page-header"><h1 class="page-title">下属单页</h1></div>
