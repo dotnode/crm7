@@ -4846,21 +4846,64 @@ function openQcDetailModal(subject) {
     ${renderFormField('复核备注', 'textarea', {placeholder:'复核说明...'})}
   `, '<button class="btn" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="closeModal()">提交复核</button>');
 }
-`;
 
-PAGE_RENDERERS['td-report'] = () => `
-  <div class="page-header"><h1 class="page-title">系统报表</h1></div>
-  ${renderTabs([{label:'客户报表'},{label:'商机报表'},{label:'邮件报表'},{label:'订单报表'},{label:'产品报表'}])}
-  <div class="grid-3 mb-16">
-    ${[{name:'客户新增趋势',type:'折线图'},{name:'客户来源分布',type:'饼图'},{name:'客户地区分布',type:'地图'},{name:'商机阶段分布',type:'漏斗图'},{name:'邮件收发统计',type:'柱状图'},{name:'订单金额趋势',type:'折线图'}].map(r => `
-      <div class="card" style="cursor:pointer;border:1px solid var(--border-light)">
-        <div class="text-bold mb-4">${r.name}</div>
-        <div class="text-sm text-muted mb-8">${r.type}</div>
-        <div class="chart-placeholder" style="min-height:120px">${r.type} 预览区</div>
+PAGE_RENDERERS['td-report'] = () => {
+  const tabs = [
+    {label:'客户报表'},
+    {label:'商机报表'},
+    {label:'邮件报表'},
+    {label:'订单报表'},
+    {label:'产品报表'},
+  ];
+  const reports = {
+    '客户报表': {chart:'📈 折线图：客户新增趋势（本月日均 0.6 → 上月 0.4）',metrics:[['新增客户',18,'↑ 50%'],['活跃客户',156,'↑ 8%'],['流失客户',3,'↓ 25%'],['成交客户',42,'↑ 12%']],detail:['排名','成员','新增客户','活跃客户','成交客户','成交率']},
+    '商机报表': {chart:'🔻 漏斗图：商机阶段分布（线索 320 → 需求确认 180 → 谈判 95 → PI 52 → 赢单 38）',metrics:[['商机总数',320,''],['赢单商机',38,'11.9%'],['输单商机',24,'7.5%'],['平均成交周期','45 天','']],detail:['阶段','商机数','转化率','赢单数','输单数','平均停留天数']},
+    '邮件报表': {chart:'📊 柱状图：邮件收发统计（发送 432 / 收到 286 / 回复率 66%）',metrics:[['发送邮件',432,''],['收到邮件',286,''],['回复率',66,'%'],['平均回复时长','6.2h','']],detail:['排名','成员','发送数','收到数','回复率','平均回复时长']},
+    '订单报表': {chart:'📈 折线图：订单金额趋势（Q1 ¥312K → Q2 ¥458K）',metrics:[['订单总数',87,''],['订单金额','¥1.28M',''],['回款金额','¥986K','77%'],['待回款金额','¥294K','23%']],detail:['排名','成员','订单数','订单金额','已回款','待回款']},
+    '产品报表': {chart:'📊 柱状图：产品销量 Top10',metrics:[['在售产品',256,''],['被询盘产品',89,''],['成交产品',42,''],['热销产品',12,'']],detail:['排名','产品','询盘次数','报价次数','成交次数','成交金额']},
+  };
+  const detailRows = {
+    '客户报表': [['1','Bambi','6','52','15','29%'],['2','Camila','5','48','12','25%'],['3','Jade','4','38','9','24%'],['4','Amy','3','18','6','33%']],
+    '商机报表': [['线索',320,'56%','--','--','12'],['需求确认',180,'53%','--','--','18'],['谈判报价',95,'55%','--','--','24'],['PI',52,'73%','--','--','15'],['赢单',38,'--','38','--','30'],['输单',24,'--','--','24','20']],
+    '邮件报表': [['1','Bambi','134','96','72%','4.2h'],['2','Camila','156','108','69%','5.8h'],['3','Jade','98','62','63%','7.5h'],['4','Amy','44','20','45%','12.1h']],
+    '订单报表': [['1','Bambi','24','¥45,200','¥38,200','¥7,000'],['2','Camila','21','¥38,900','¥31,500','¥7,400'],['3','Jade','18','¥25,700','¥18,900','¥6,800'],['4','Amy','12','¥16,000','¥10,000','¥6,000']],
+    '产品报表': [['1','Toupee System HD','68','42','18','¥86,400'],['2','Men Hairpiece','52','38','15','¥45,000'],['3','Toupee Sample','45','28','12','¥9,600'],['4','Women Wig','32','22','8','¥24,000']],
+  };
+  return `
+    <div class="page-header">
+      <h1 class="page-title">系统报表</h1>
+      <div class="page-actions">
+        <span class="text-sm text-muted">数据更新于 2026-06-21 09:00</span>
+        <button class="btn btn-sm">🔄 刷新</button>
+        <button class="btn btn-sm">订阅</button>
+        <button class="btn btn-sm" style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none">🤖 AI 数据助理</button>
       </div>
-    `).join('')}
-  </div>
-`;
+    </div>
+    ${renderTabs(tabs, 0, 'tdReport')}
+    <div id="tdReport_panels">
+      ${renderTabPanels('tdReport', tabs.map((t, idx) => {
+        const r = reports[t.label];
+        return `<div class="filter-bar mb-12">
+          <select class="filter-select"><option>本月</option><option>本季度</option><option>本年</option><option>自定义</option></select>
+          <select class="filter-select"><option>全部成员</option><option>本部门</option></select>
+          <button class="btn btn-sm">导出Excel</button>
+          <button class="btn btn-sm">报表详情</button>
+        </div>
+        <div class="stat-cards mb-16">
+          ${r.metrics.map(m => `<div class="stat-card"><div class="stat-label">${m[0]}</div><div class="stat-value">${m[1]}</div><div class="stat-sub">${m[2]}</div></div>`).join('')}
+        </div>
+        <div class="card mb-16">
+          <div class="card-title">${t.label} · 图表区</div>
+          <div class="chart-placeholder" style="min-height:220px">${r.chart}</div>
+        </div>
+        <div class="card">
+          <div class="card-title">${t.label} · 明细</div>
+          ${renderTable(r.detail, detailRows[t.label], {total: detailRows[t.label].length})}
+        </div>`;
+      }))}
+    </div>
+  `;
+};
 
 PAGE_RENDERERS['td-follow-dynamics'] = () => `
   <div class="page-header"><h1 class="page-title">跟进动态</h1></div>
