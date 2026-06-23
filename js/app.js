@@ -5125,27 +5125,29 @@ function openWorkReportModal() {
 PAGE_RENDERERS['collab-schedule'] = () => `
   <div class="page-header">
     <h1 class="page-title">日程</h1>
-    <div class="toggle-group"><button class="toggle-btn active">我有权限查看的日程</button></div>
+    <div class="toggle-group"><button class="toggle-btn active" onclick="switchToggle(this)">我有权限查看的日程</button></div>
     <div class="page-actions"><button class="btn btn-primary" onclick="openNewScheduleModal()">+ 新建日程</button></div>
   </div>
   <div class="filter-bar mb-12">
     <input class="filter-input" type="date" placeholder="开始日期" />
     <input class="filter-input" type="date" placeholder="结束日期" />
-    <select class="filter-select"><option>全部成员</option></select>
+    <select class="filter-select"><option>全部成员</option><option>Bambi</option><option>Camila</option><option>Jade</option></select>
     <select class="filter-select"><option>全部对象类型</option><option>客户</option><option>线索</option><option>商机</option></select>
+    <button class="btn btn-sm">自定义列</button>
   </div>
   ${renderTable(
-    ['日程主题','创建时间','创建人','参与人','重复','开始时间','结束时间','全天','对象类型','关联对象','备注'],
+    ['日程主题','创建时间','创建人','参与人','重复','开始时间','结束时间','全天','对象类型','关联对象','关联邮件','备注','提醒时间','操作'],
     [
-      ['跟进 SWISS HAIR CLUB','2026-06-20','Camila','Camila, Bambi','否','2026-06-22 10:00','2026-06-22 11:00','否','客户','SWISS HAIR CLUB','确认订单细节'],
-      ['周会','2026-06-18','Admin','全部成员','每周','2026-06-23 09:00','2026-06-23 10:00','否','','','团队周会'],
+      ['跟进 SWISS HAIR CLUB','2026-06-20','Camila','Camila, Bambi','否','2026-06-22 10:00','2026-06-22 11:00','否','客户','SWISS HAIR CLUB','Re: Product Inquiry','确认订单细节','09:45','<button class="btn btn-sm btn-text">编辑</button>'],
+      ['周会','2026-06-18','Admin','全部成员','每周','2026-06-23 09:00','2026-06-23 10:00','否','','','','团队周会','08:45','<button class="btn btn-sm btn-text">编辑</button>'],
+      ['Bono Hair 报价跟进','2026-06-19','Bambi','Bambi','否','2026-06-23 14:00','2026-06-23 15:00','否','客户','Bono Hair','Price Quotation','发送 PI','13:45','<button class="btn btn-sm btn-text">编辑</button>'],
     ],
-    { total: 2 }
+    { total: 3 }
   )}
 `;
 
 function openNewScheduleModal() {
-  openModal('新建日程', `
+  openModal('新建日程（简版）', `
     <div class="form-group">
       <label class="form-switch"><input type="checkbox" checked /> 全天事件</label>
     </div>
@@ -5159,36 +5161,96 @@ function openNewScheduleModal() {
       <button class="btn btn-sm">附件</button>
     </div>
     <div class="divider"></div>
-    <a class="text-primary text-sm">完整编辑 →</a>
+    <a class="text-primary text-sm" onclick="closeModal();openFullScheduleModal()">完整编辑 →</a>
+  `, '<button class="btn" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="closeModal()">保存</button>');
+}
+
+function openFullScheduleModal() {
+  openModal('新建日程 · 完整编辑', `
+    <div class="form-group">
+      <label class="form-switch"><input type="checkbox" checked /> 全天事件</label>
+    </div>
+    <div class="form-row">
+      ${renderFormField('开始时间', 'datetime', {value:'2026-06-22T10:00'})}
+      ${renderFormField('结束时间', 'datetime', {value:'2026-06-22T11:00'})}
+    </div>
+    ${renderFormField('设置为周期性日期', 'select', {options:['不设置','每天','每周','每月','每年']})}
+    ${renderFormField('提醒时间', 'select', {options:['不提醒','开始时','提前5分钟','提前15分钟','提前30分钟','提前1小时']})}
+    <div class="form-row">
+      ${renderFormField('关联对象类型', 'select', {options:['客户','线索','商机']})}
+      ${renderFormField('关联对象', 'text', {placeholder:'搜索关键字选择关联对象'})}
+    </div>
+    ${renderFormField('参与人员', 'text', {placeholder:'添加参与人（默认包含当前用户）'})}
+    ${renderFormField('备注', 'textarea', {placeholder:'富文本内容，支持插入图片...'})}
+    <div class="flex gap-8 mb-12">
+      <button class="btn btn-sm">插入图片</button>
+      <button class="btn btn-sm">附件</button>
+    </div>
+    <div class="upload-area mb-12">上传附件</div>
+    <label class="form-switch"><input type="checkbox" /> 以后默认打开完整编辑窗口</label>
   `, '<button class="btn" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="closeModal()">保存</button>');
 }
 
 // Approval
-PAGE_RENDERERS['collab-approval'] = () => `
-  <div class="page-header">
-    <h1 class="page-title">审批</h1>
-    <div class="page-actions">
-      <button class="btn btn-sm" style="color:var(--danger)">🔥 App&钉钉便捷审批</button>
-      <button class="btn btn-sm" onclick="navigateTo('collaboration','collab-approval-flow')">审批流管理</button>
+PAGE_RENDERERS['collab-approval'] = () => {
+  const tabs = [{label:'由我审批（待办）'},{label:'由我审批（已办）'},{label:'我提交的审批'}];
+  const todo = renderTable(['审批标题','审批类型','发起人','发起时间','金额','操作'],
+    [['Bono Hair 报价单审批','报价单状态变更','Bambi','2026-06-21 14:20','¥38,900','<button class="btn btn-sm btn-primary">同意</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">拒绝</button>'],
+     ['Pacific Corp 费用单审批','费用单','Jade','2026-06-21 11:00','¥2,400','<button class="btn btn-sm btn-primary">同意</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">拒绝</button>']],
+    {total:2});
+  const done = renderTable(['审批标题','审批类型','发起人','发起时间','金额','结果','处理时间'],
+    [['SWISS HAIR CLUB 回款审批','回款登记','Camila','2026-06-20','¥45,200','<span class="table-tag success">已同意</span>','2026-06-20 16:30']],
+    {total:8});
+  const mine = renderTable(['审批标题','审批类型','当前审批人','发起时间','金额','状态'],
+    [['Hair World 订单审批','销售订单','主管 Lisa','2026-06-21','¥12,800','<span class="table-tag warning">审批中</span>'],
+     ['Bono Hair 报价单审批','报价单','主管 Lisa','2026-06-19','¥38,900','<span class="table-tag success">已通过</span>']],
+    {total:5});
+  return `
+    <div class="page-header">
+      <h1 class="page-title">审批</h1>
+      <div class="page-actions">
+        <button class="btn btn-sm" style="color:var(--danger)">🔥 App&钉钉便捷审批</button>
+        <button class="btn btn-sm" onclick="navigateTo('enterprise','ent-approval-flow')">审批流管理</button>
+      </div>
     </div>
-  </div>
-  ${renderTabs([{label:'由我审批（待办）'},{label:'由我审批（已办）'},{label:'我提交的审批'}])}
-  <div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">暂无审批任务</div></div>
-`;
+    ${renderTabs(tabs, 0, 'collabApproval')}
+    <div id="collabApproval_panels">
+      ${renderTabPanels('collabApproval', [todo, done, mine])}
+    </div>
+  `;
+};
 
 // Cloud Drive
 PAGE_RENDERERS['collab-cloud'] = () => `
-  <div class="page-header"><h1 class="page-title">云盘</h1></div>
-  <div class="filter-bar mb-12"><select class="filter-select"><option>全部文件类型</option></select></div>
+  <div class="page-header">
+    <h1 class="page-title">云盘</h1>
+    <div class="page-actions">
+      <button class="btn btn-sm">上传</button>
+      <button class="btn btn-sm">新建文件夹</button>
+      <button class="btn btn-primary">+ 共享</button>
+    </div>
+  </div>
+  <div class="filter-bar mb-12">
+    <select class="filter-select"><option>全部文件类型</option><option>文档</option><option>表格</option><option>图片</option><option>PDF</option></select>
+    <input class="filter-input" placeholder="搜索文件名" />
+    <button class="btn btn-sm">按修改时间</button>
+  </div>
   <div class="page-with-sidebar">
     <div class="left-panel">
       <div class="tree-item active">OKKI云文档</div>
       <div class="tree-item">我的文档</div>
       <div class="tree-item">共享文档</div>
       <div class="tree-item">成员文档</div>
+      <div class="tree-item">回收站</div>
     </div>
-    <div class="right-content" style="padding:16px">
-      <div class="empty-state"><div class="empty-icon">📁</div><div class="empty-text">暂无文档</div></div>
+    <div class="right-content" style="padding:0 16px">
+      ${renderTable(['文件名','类型','大小','创建人','修改时间','操作'],
+        [['📁 客户资料','文件夹','--','Admin','2026-06-20','<button class="btn btn-sm btn-text">打开</button> <button class="btn btn-sm btn-text">共享</button>'],
+         ['📄 报价单模板.docx','文档','128KB','Bambi','2026-06-19','<button class="btn btn-sm btn-text">下载</button> <button class="btn btn-sm btn-text">共享</button>'],
+         ['📊 6月销售统计.xlsx','表格','256KB','Camila','2026-06-18','<button class="btn btn-sm btn-text">下载</button> <button class="btn btn-sm btn-text">共享</button>'],
+         ['🖼 产品图集.zip','压缩包','12.4MB','Jade','2026-06-15','<button class="btn btn-sm btn-text">下载</button> <button class="btn btn-sm btn-text">共享</button>'],
+         ['📄 PI模板.pdf','PDF','340KB','Admin','2026-06-10','<button class="btn btn-sm btn-text">下载</button> <button class="btn btn-sm btn-text">共享</button>']],
+        {checkbox:true, total:5})}
     </div>
   </div>
 `;
@@ -5277,7 +5339,7 @@ function openImportContactsModal() {
     <div class="form-section"><div class="form-section-title">步骤2：选择导入文件</div><div class="upload-area">点击上传</div></div>
     <div class="form-section"><div class="form-section-title">步骤3：选择导入的分组</div><select class="form-select"><option>个人通讯录</option></select></div>
     <div class="form-section"><div class="form-section-title">步骤4：导入模式</div><div class="flex gap-12"><label><input type="radio" name="mode" checked /> 不更新</label><label><input type="radio" name="mode" /> 更新</label></div></div>
-    <a class="text-primary text-sm">查看任务列表</a>
+    <a class="text-primary text-sm" onclick="closeModal();navigateTo('enterprise','ent-task-settings')">查看任务列表</a>
   `, '<button class="btn" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="closeModal()">一键导入</button>');
 }
 
@@ -5286,8 +5348,8 @@ PAGE_RENDERERS['collab-task'] = () => `
   <div class="page-header">
     <h1 class="page-title">任务</h1>
     <div class="page-actions">
-      <button class="btn btn-sm">任务完成情况</button>
-      <button class="btn btn-sm">任务设置</button>
+      <button class="btn btn-sm" onclick="navigateTo('team-data','td-report')">任务完成情况</button>
+      <button class="btn btn-sm" onclick="navigateTo('enterprise','ent-task-settings')">任务设置</button>
     </div>
   </div>
   <div class="text-sm text-muted mb-12">任务是由管理者设置的任务规则触发自动创建。</div>
@@ -5295,19 +5357,36 @@ PAGE_RENDERERS['collab-task'] = () => `
     <input class="filter-input" type="date" placeholder="开始时间" />
     <span>~</span>
     <input class="filter-input" type="date" placeholder="结束时间" />
-    <select class="filter-select"><option>全部执行人</option></select>
+    <select class="filter-select"><option>全部执行人</option><option>Bambi</option><option>Camila</option><option>Jade</option></select>
   </div>
   ${renderTabs([{label:'全部'},{label:'即将超时'},{label:'已超时'},{label:'已完成'},{label:'已忽略'}])}
-  <div class="toggle-group mb-12"><button class="toggle-btn active">跟进客户</button><button class="toggle-btn">回复邮件</button><button class="toggle-btn">回复TM</button></div>
+  <div class="toggle-group mb-12"><button class="toggle-btn active" onclick="switchToggle(this)">跟进客户</button><button class="toggle-btn" onclick="switchToggle(this)">回复邮件</button><button class="toggle-btn" onclick="switchToggle(this)">回复TM</button></div>
   ${renderTable(
     ['任务状态','公司名称','任务规则名称','执行人','最近动态','最近跟进','创建时间','最近跟进时间','截止时间','操作'],
     [
-      ['<span class="table-tag danger">已超时</span>','SWISS HAIR CLUB','成交客户30天至少跟进1次','Camila','发送邮件','跟进记录','2026-06-01','2026-05-15','2026-06-15','<button class="btn btn-sm btn-text">处理</button>'],
-      ['<span class="table-tag warning">即将超时</span>','Hair World','询盘客户60天至少跟进1次','Bambi','收到邮件','','2026-06-10','2026-06-18','2026-06-25','<button class="btn btn-sm btn-text">处理</button>'],
+      ['<span class="table-tag danger">已超时</span>','SWISS HAIR CLUB','成交客户30天至少跟进1次','Camila','发送邮件','跟进记录','2026-06-01','2026-05-15','2026-06-15','<button class="btn btn-sm btn-text" onclick="openTaskHandleDrawer(\'SWISS HAIR CLUB\')">处理</button>'],
+      ['<span class="table-tag warning">即将超时</span>','Hair World','询盘客户60天至少跟进1次','Bambi','收到邮件','','2026-06-10','2026-06-18','2026-06-25','<button class="btn btn-sm btn-text" onclick="openTaskHandleDrawer(\'Hair World\')">处理</button>'],
+      ['<span class="table-tag success">已完成</span>','Bono Hair','成交客户的邮件12小时内回复','Camila','已回复邮件','邮件回复','2026-06-12','2026-06-20','2026-06-21','<button class="btn btn-sm btn-text">查看</button>'],
     ],
-    { total: 2 }
+    { total: 3 }
   )}
 `;
+
+function openTaskHandleDrawer(company) {
+  openDrawer('处理任务 — ' + company, `
+    <div class="info-list mb-12">
+      <div class="info-item"><span class="info-label">公司</span><span class="info-value">${company}</span></div>
+      <div class="info-item"><span class="info-label">任务规则</span><span class="info-value">成交客户30天至少跟进1次</span></div>
+      <div class="info-item"><span class="info-label">截止时间</span><span class="info-value">2026-06-15</span></div>
+    </div>
+    <div class="flex gap-8 mb-12">
+      <button class="btn btn-sm btn-primary" onclick="closeDrawer()">标记已跟进</button>
+      <button class="btn btn-sm" onclick="navigateTo('team-data','td-follow-dynamics');closeDrawer()">写跟进</button>
+      <button class="btn btn-sm" onclick="closeDrawer()">忽略任务</button>
+    </div>
+    ${renderFormField('备注', 'textarea', {placeholder:'处理说明...'})}
+  `, '');
+}
 
 // ===== 11. Enterprise / 企业管理模块 =====
 PAGE_RENDERERS['ent-switch'] = () => `
@@ -5330,10 +5409,10 @@ PAGE_RENDERERS['ent-roles'] = () => `
   ${renderTable(
     ['角色','成员','操作'],
     [
-      ['系统管理员','<span class="text-primary">3 人</span>','<button class="btn btn-sm btn-text">查看</button>'],
-      ['普通用户','<span class="text-primary">25 人</span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text">查看</button>'],
-      ['部门管理员','<span class="text-primary">5 人</span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text">查看</button>'],
-      ['财务管理员','<span class="text-primary">2 人</span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text">查看</button>'],
+      ['系统管理员','<a class="text-primary">3 人 · 管理</a>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text">查看</button>'],
+      ['普通用户','<a class="text-primary">25 人 · 管理</a>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text">查看</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
+      ['部门管理员','<a class="text-primary">5 人 · 管理</a>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text">查看</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
+      ['财务管理员','<a class="text-primary">2 人 · 管理</a>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text">查看</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
     ],
     { total: 4 }
   )}
@@ -5348,12 +5427,14 @@ PAGE_RENDERERS['ent-fields'] = () => `
   ${renderTable(
     ['字段','类型','可见于','归属','操作'],
     [
-      ['客户等级','下拉单选','线索、客户管理、商机','公司信息','<button class="btn btn-sm btn-text">编辑</button>'],
-      ['广告UTM','文本','线索、客户管理','公司信息','<button class="btn btn-sm btn-text">编辑</button>'],
-      ['需求和售后','多行文本','客户管理','公司信息','<button class="btn btn-sm btn-text">编辑</button>'],
-      ['付款方式1','下拉多选','客户管理','公司信息','<button class="btn btn-sm btn-text">编辑</button>'],
-      ['首次成交时间','日期','客户管理','公司信息','<button class="btn btn-sm btn-text">编辑</button>'],
-      ['谷歌广告-关键词','文本','客户管理','公司信息','<button class="btn btn-sm btn-text">编辑</button>'],
+      ['客户等级','下拉单选','线索、客户管理、商机','公司信息','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
+      ['广告UTM','文本','线索、客户管理','公司信息','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
+      ['需求和售后','多行文本','客户管理','公司信息','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
+      ['付款方式1','下拉多选','客户管理','公司信息','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
+      ['首次成交时间','日期','客户管理','公司信息','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
+      ['谷歌广告-关键词','文本','客户管理','公司信息','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
+      ['询盘云跟进次数','数值','线索管理','联系信息','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
+      ['职位/职级','下拉多选','客户管理','联系信息','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
     ],
     { total: 45 }
   )}
@@ -5440,44 +5521,94 @@ PAGE_RENDERERS['ent-biz-settings'] = () => {
 
 PAGE_RENDERERS['ent-source-settings'] = () => `
   <div class="page-header"><h1 class="page-title">来源设置</h1></div>
-  <div class="card">
-    <div class="flex-between mb-12"><span class="card-title" style="margin-bottom:0">客户/线索来源管理</span><button class="btn btn-sm btn-primary">+ 新增来源</button></div>
-    ${renderTable(['来源名称','来源分类','排序','操作'],
-      [['主动开发','渠道获客','1','<button class="btn btn-sm btn-text">编辑</button>'],
-       ['官网询盘','线上询盘','2','<button class="btn btn-sm btn-text">编辑</button>'],
-       ['阿里巴巴','线上询盘','3','<button class="btn btn-sm btn-text">编辑</button>'],
-       ['社媒','渠道获客','4','<button class="btn btn-sm btn-text">编辑</button>'],
-       ['展会','线下渠道','5','<button class="btn btn-sm btn-text">编辑</button>'],
-       ['TM 咨询','线上询盘','6','<button class="btn btn-sm btn-text">编辑</button>']],
-      {total:6})}
+  <div class="page-with-sidebar">
+    <div class="left-panel">
+      <div class="text-xs text-muted" style="padding:8px 16px">来源分类</div>
+      <div class="tree-item active">全部来源</div>
+      <div class="tree-item">线上询盘</div>
+      <div class="tree-item">渠道获客</div>
+      <div class="tree-item">线下渠道</div>
+      <div class="flex gap-8" style="padding:8px 16px"><button class="btn btn-sm">+ 新增分类</button></div>
+    </div>
+    <div class="right-content" style="padding:0 16px">
+      <div class="flex-between mb-12"><span class="card-title" style="margin-bottom:0">客户/线索来源字典</span><button class="btn btn-sm btn-primary" onclick="openEditSourceModal()">+ 新增来源</button></div>
+      <div class="text-sm text-muted mb-12">来源分类与来源项支持联动：选择分类后右侧仅显示该分类下的来源；来源项可设置子来源与默认跟进规则。</div>
+      ${renderTable(['来源名称','来源分类','子来源数','默认跟进规则','排序','操作'],
+        [['主动开发','渠道获客','3','24h 内首次联系','1','<button class="btn btn-sm btn-text" onclick="openEditSourceModal(\'主动开发\')">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
+         ['官网询盘','线上询盘','2','自动分配并 12h 内联系','2','<button class="btn btn-sm btn-text" onclick="openEditSourceModal(\'官网询盘\')">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
+         ['阿里巴巴','线上询盘','5','自动分配并 24h 内联系','3','<button class="btn btn-sm btn-text" onclick="openEditSourceModal(\'阿里巴巴\')">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
+         ['社媒','渠道获客','4','48h 内首次联系','4','<button class="btn btn-sm btn-text" onclick="openEditSourceModal(\'社媒\')">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
+         ['展会','线下渠道','2','展会后 3 天内复盘','5','<button class="btn btn-sm btn-text" onclick="openEditSourceModal(\'展会\')">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
+         ['TM 咨询','线上询盘','1','实时分配','6','<button class="btn btn-sm btn-text" onclick="openEditSourceModal(\'TM 咨询\')">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>']],
+        {total:6})}
+    </div>
   </div>
 `;
 
-PAGE_RENDERERS['ent-dedup-settings'] = () => `
-  <div class="page-header"><h1 class="page-title">判重设置</h1></div>
-  <div class="card">
-    <div class="card-title">判重规则配置</div>
-    <div class="text-sm text-muted mb-16">设置新建客户/线索时的查重规则，避免重复建档</div>
+function openEditSourceModal(name) {
+  openModal(name ? '编辑来源' : '新增来源', `
+    ${renderFormField('来源名称', 'text', {value: name || '', placeholder:'来源名称'})}
+    ${renderFormField('来源分类', 'select', {options:['线上询盘','渠道获客','线下渠道']})}
+    ${renderFormField('默认跟进规则', 'select', {options:['24h 内首次联系','12h 内首次联系','48h 内首次联系','展会后 3 天复盘','实时分配','不自动跟进']})}
     <div class="form-section">
-      <div class="form-section-title">客户判重规则</div>
-      <label class="form-switch mb-12"><input type="checkbox" checked /> 公司名称判重</label><br>
-      <label class="form-switch mb-12"><input type="checkbox" checked /> 邮箱后缀判重</label><br>
-      <label class="form-switch mb-12"><input type="checkbox" /> 联系电话判重</label><br>
-      <label class="form-switch mb-12"><input type="checkbox" checked /> 公司网址判重</label>
+      <div class="form-section-title">子来源</div>
+      <div class="text-sm text-muted mb-8">该来源下的子来源项</div>
+      <input class="form-input mb-8" placeholder="输入子来源后回车添加" />
+      <div class="flex gap-8 flex-wrap">${['官网表单','落地页','Google Ads'].map(s => `<span class="table-tag primary">${s} <a style="margin-left:4px;cursor:pointer">×</a></span>`).join('')}</div>
     </div>
-    <div class="form-section">
-      <div class="form-section-title">线索判重规则</div>
-      <label class="form-switch mb-12"><input type="checkbox" checked /> 联系人邮箱判重</label><br>
-      <label class="form-switch mb-12"><input type="checkbox" /> 联系人手机号判重</label>
+    ${renderFormField('排序', 'text', {value:'1'})}
+  `, '<button class="btn" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="closeModal()">保存</button>');
+}
+
+PAGE_RENDERERS['ent-dedup-settings'] = () => {
+  const tabs = [{label:'客户判重'},{label:'线索判重'},{label:'联系人判重'}];
+  const custPanel = `<div class="text-sm text-muted mb-12">设置新建客户时的查重字段与处理方式</div>
+    <div class="flex-between mb-12"><span class="card-title" style="margin-bottom:0">查重字段</span><button class="btn btn-sm btn-primary">+ 新增字段</button></div>
+    ${renderTable(['字段名称','字段类型','匹配方式','启用','操作'],
+      [['公司名称','文本','精确匹配','<span class="switch-track on" style="display:inline-block;transform:scale(.6)" onclick="this.classList.toggle(\'on\')"></span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
+       ['邮箱后缀','文本','后缀匹配','<span class="switch-track on" style="display:inline-block;transform:scale(.6)" onclick="this.classList.toggle(\'on\')"></span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
+       ['公司网址','文本','域名匹配','<span class="switch-track on" style="display:inline-block;transform:scale(.6)" onclick="this.classList.toggle(\'on\')"></span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
+       ['联系电话','文本','精确匹配','<span class="switch-track" style="display:inline-block;transform:scale(.6)" onclick="this.classList.toggle(\'on\')"></span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>']],
+      {total:8})}
+    <div class="card mt-16">
+      <div class="card-title mb-8">判重处理与范围</div>
+      <div class="grid-2">
+        ${renderFormField('重复处理方式','select',{options:['提示人工合并','自动合并','阻止建档']})}
+        ${renderFormField('判重范围','select',{options:['全公司','我的客户','私海+公海']})}
+        ${renderFormField('模糊匹配','select',{options:['关闭','开启']})}
+        ${renderFormField('合并后保留','select',{options:['保留较新数据','保留较全数据']})}
+      </div>
+      <div class="mt-12"><button class="btn btn-primary btn-sm">保存判重设置</button></div>
+    </div>`;
+  const leadPanel = `<div class="text-sm text-muted mb-12">设置新建线索时的查重字段与处理方式</div>
+    <div class="flex-between mb-12"><span class="card-title" style="margin-bottom:0">查重字段</span><button class="btn btn-sm btn-primary">+ 新增字段</button></div>
+    ${renderTable(['字段名称','字段类型','匹配方式','启用','操作'],
+      [['联系人邮箱','文本','精确匹配','<span class="switch-track on" style="display:inline-block;transform:scale(.6)" onclick="this.classList.toggle(\'on\')"></span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
+       ['联系人手机号','文本','精确匹配','<span class="switch-track" style="display:inline-block;transform:scale(.6)" onclick="this.classList.toggle(\'on\')"></span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
+       ['公司名称','文本','模糊匹配','<span class="switch-track on" style="display:inline-block;transform:scale(.6)" onclick="this.classList.toggle(\'on\')"></span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>']],
+      {total:5})}
+    <div class="card mt-16">
+      <div class="card-title mb-8">判重处理与范围</div>
+      <div class="grid-2">
+        ${renderFormField('重复处理方式','select',{options:['提示人工合并','阻止建档','自动合并']})}
+        ${renderFormField('判重范围','select',{options:['全公司','我的线索']})}
+      </div>
+      <div class="mt-12"><button class="btn btn-primary btn-sm">保存判重设置</button></div>
+    </div>`;
+  const contactPanel = `<div class="text-sm text-muted mb-12">设置联系人查重字段，避免同一联系人重复建档</div>
+    ${renderTable(['字段名称','字段类型','匹配方式','启用','操作'],
+      [['邮箱','文本','精确匹配','<span class="switch-track on" style="display:inline-block;transform:scale(.6)" onclick="this.classList.toggle(\'on\')"></span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
+       ['手机号','文本','精确匹配','<span class="switch-track on" style="display:inline-block;transform:scale(.6)" onclick="this.classList.toggle(\'on\')"></span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>']],
+      {total:2})}`;
+  return `
+    <div class="page-header"><h1 class="page-title">判重设置</h1></div>
+    ${renderTabs(tabs, 0, 'entDedup')}
+    <div id="entDedup_panels">
+      ${renderTabPanels('entDedup', [custPanel, leadPanel, contactPanel])}
     </div>
-    <div class="form-section">
-      <div class="form-section-title">判重范围</div>
-      <label class="form-switch mb-12"><input type="checkbox" checked /> 全公司范围判重</label><br>
-      <label class="form-switch"><input type="checkbox" /> 仅个人范围判重</label>
-    </div>
-    <button class="btn btn-primary mt-12">保存设置</button>
-  </div>
-`;
+  `;
+};
+
 
 PAGE_RENDERERS['ent-product-settings'] = () => {
   const g = 'entProdSet';
@@ -5637,79 +5768,178 @@ PAGE_RENDERERS['ent-workflow'] = () => `
   </div>
 `;
 
-PAGE_RENDERERS['ent-export'] = () => `
-  <div class="page-header"><h1 class="page-title">客户导出</h1></div>
-  <div class="card">
-    <div class="card-title">导出任务</div>
-    <div class="text-sm text-muted mb-12">查看和管理客户数据导出任务</div>
-    ${renderTable(['任务名称','导出范围','导出字段','创建人','创建时间','文件大小','状态','操作'],
-      [['全部客户导出','全部客户 (356)','全部字段','Admin','2026-06-20','2.5MB','<span class="table-tag success">已完成</span>','<button class="btn btn-sm btn-text">下载</button>'],
-       ['公海客户导出','公海客户 (523)','基本字段','Bambi','2026-06-18','1.8MB','<span class="table-tag success">已完成</span>','<button class="btn btn-sm btn-text">下载</button>']],
-      {total:2})}
-  </div>
-`;
+PAGE_RENDERERS['ent-export'] = () => {
+  const tabs = [{label:'客户导出'},{label:'线索导出'},{label:'商机导出'},{label:'订单导出'}];
+  const custRows = [['全部客户导出','全部客户 (356)','全部字段','Admin','2026-06-20','2.5MB','<span class="table-tag success">已完成</span>','<button class="btn btn-sm btn-text">下载</button>'],['公海客户导出','公海客户 (523)','基本字段','Bambi','2026-06-18','1.8MB','<span class="table-tag success">已完成</span>','<button class="btn btn-sm btn-text">下载</button>'],['VIP 客户导出','VIP 客户 (42)','全部字段','Camila','2026-06-15','320KB','<span class="table-tag success">已完成</span>','<button class="btn btn-sm btn-text">下载</button>']];
+  const leadRows = [['未跟进线索导出','30天未跟进 (128)','基本字段','Admin','2026-06-19','1.2MB','<span class="table-tag success">已完成</span>','<button class="btn btn-sm btn-text">下载</button>'],['阿里询盘线索','阿里询盘 (89)','全部字段','Bambi','2026-06-17','980KB','<span class="table-tag warning">生成中</span>','<button class="btn btn-sm btn-text">刷新</button>']];
+  const bizRows = [['本月赢单商机','赢单 (38)','全部字段','Admin','2026-06-20','410KB','<span class="table-tag success">已完成</span>','<button class="btn btn-sm btn-text">下载</button>']];
+  const orderRows = [['本月订单导出','成交订单 (87)','全部字段','Admin','2026-06-21','1.1MB','<span class="table-tag success">已完成</span>','<button class="btn btn-sm btn-text">下载</button>']];
+  const cols = ['任务名称','导出范围','导出字段','创建人','创建时间','文件大小','状态','操作'];
+  const panel = (rows,total) => `<div class="flex-between mb-12"><div class="text-sm text-muted">查看和管理导出任务</div><button class="btn btn-sm btn-primary" onclick="openNewExportModal()">+ 新建导出</button></div>${renderTable(cols, rows, {total})}`;
+  return `
+    <div class="page-header"><h1 class="page-title">客户导出</h1></div>
+    ${renderTabs(tabs, 0, 'entExport')}
+    <div id="entExport_panels">
+      ${renderTabPanels('entExport', [panel(custRows,3), panel(leadRows,2), panel(bizRows,1), panel(orderRows,1)])}
+    </div>
+  `;
+};
 
-PAGE_RENDERERS['ent-recycle'] = () => `
-  <div class="page-header"><h1 class="page-title">回收箱</h1></div>
-  ${renderTabs([{label:'客户'},{label:'线索'},{label:'商机'},{label:'联系人'},{label:'订单'}])}
-  <div class="alert alert-warning mb-12">⚠️ 回收箱数据保留 30 天，超过 30 天将自动永久删除</div>
-  <div class="card">
-    ${renderTable(['名称','类型','删除人','删除时间','操作'],
-      [['Test Company','客户','Bambi','2026-06-15','<button class="btn btn-sm btn-primary">恢复</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">永久删除</button>'],
-       ['Sample Lead','线索','Camila','2026-06-12','<button class="btn btn-sm btn-primary">恢复</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">永久删除</button>']],
-      {total:2})}
-  </div>
-`;
+function openNewExportModal() {
+  openModal('新建导出任务', `
+    ${renderFormField('导出范围', 'select', {options:['全部客户','公海客户','VIP 客户','我的客户']})}
+    ${renderFormField('导出字段', 'select', {options:['全部字段','基本字段','自定义字段']})}
+    <div class="form-row">
+      ${renderFormField('数据格式', 'select', {options:['Excel (.xlsx)','CSV','PDF']})}
+      ${renderFormField('是否含跟进动态', 'select', {options:['不含','包含']})}
+    </div>
+    <div class="text-sm text-muted">导出任务将在后台生成，完成后可在列表下载。</div>
+  `, '<button class="btn" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="closeModal()">开始导出</button>');
+}
+
+PAGE_RENDERERS['ent-recycle'] = () => {
+  const tabs = [{label:'客户'},{label:'线索'},{label:'商机'},{label:'联系人'},{label:'订单'}];
+  const cols = ['名称','删除人','删除时间','剩余保留','操作'];
+  const rows = {
+    '客户': [['Test Company','Bambi','2026-06-15','25 天','<button class="btn btn-sm btn-primary">恢复</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">永久删除</button>'],['Old Customer Inc','Camila','2026-06-10','20 天','<button class="btn btn-sm btn-primary">恢复</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">永久删除</button>']],
+    '线索': [['Sample Lead','Camila','2026-06-12','23 天','<button class="btn btn-sm btn-primary">恢复</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">永久删除</button>'],['Spam Lead','Bambi','2026-06-05','16 天','<button class="btn btn-sm btn-primary">恢复</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">永久删除</button>']],
+    '商机': [['Test Biz Opp','Jade','2026-06-08','19 天','<button class="btn btn-sm btn-primary">恢复</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">永久删除</button>']],
+    '联系人': [['John Doe','Bambi','2026-06-14','24 天','<button class="btn btn-sm btn-primary">恢复</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">永久删除</button>']],
+    '订单': [['TEST-ORDER-001','Admin','2026-06-11','22 天','<button class="btn btn-sm btn-primary">恢复</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">永久删除</button>']],
+  };
+  return `
+    <div class="page-header"><h1 class="page-title">回收箱</h1></div>
+    <div class="alert alert-warning mb-12">⚠️ 回收箱数据保留 30 天，超过 30 天将自动永久删除</div>
+    ${renderTabs(tabs, 0, 'entRecycle')}
+    <div id="entRecycle_panels">
+      ${renderTabPanels('entRecycle', tabs.map(t => renderTable(cols, rows[t.label], {total: rows[t.label].length})))}
+    </div>
+  `;
+};
 
 PAGE_RENDERERS['ent-custom-report'] = () => `
-  <div class="page-header"><h1 class="page-title">自定义报表</h1><div class="page-actions"><button class="btn btn-primary">+ 新建报表</button></div></div>
-  <div class="card">
-    <div class="text-sm text-muted mb-12">创建自定义报表，灵活配置数据维度和展示方式</div>
-    ${renderTable(['报表名称','数据源','图表类型','创建人','最近查看','操作'],
-      [['月度销售趋势','订单','折线图','Admin','2026-06-21','<button class="btn btn-sm btn-text">查看</button> <button class="btn btn-sm btn-text">编辑</button>'],
-       ['客户来源分析','客户','饼图','Admin','2026-06-20','<button class="btn btn-sm btn-text">查看</button> <button class="btn btn-sm btn-text">编辑</button>'],
-       ['商机转化漏斗','商机','漏斗图','Admin','2026-06-19','<button class="btn btn-sm btn-text">查看</button> <button class="btn btn-sm btn-text">编辑</button>']],
-      {total:3})}
-  </div>
+  <div class="page-header"><h1 class="page-title">自定义报表</h1><div class="page-actions"><button class="btn btn-primary" onclick="openNewCustomReportModal()">+ 新建报表</button></div></div>
+  <div class="text-sm text-muted mb-12">创建自定义报表，灵活配置数据维度和展示方式</div>
+  ${renderTable(['报表名称','数据源','图表类型','创建人','最近查看','共享范围','操作'],
+    [['月度销售趋势','订单','折线图','Admin','2026-06-21','全部门','<button class="btn btn-sm btn-text">查看</button> <button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
+     ['客户来源分析','客户','饼图','Admin','2026-06-20','本部门','<button class="btn btn-sm btn-text">查看</button> <button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
+     ['商机转化漏斗','商机','漏斗图','Admin','2026-06-19','全部门','<button class="btn btn-sm btn-text">查看</button> <button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
+     ['业务员业绩排行','订单','柱状图','Admin','2026-06-18','全部门','<button class="btn btn-sm btn-text">查看</button> <button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>']],
+    {total:4})}
 `;
+
+function openNewCustomReportModal() {
+  openModal('新建自定义报表', `
+    ${renderFormField('报表名称', 'text', {placeholder:'报表名称'})}
+    <div class="form-row">
+      ${renderFormField('数据源', 'select', {options:['客户','线索','商机','订单','邮件','产品']})}
+      ${renderFormField('图表类型', 'select', {options:['折线图','柱状图','饼图','漏斗图','表格','地图']})}
+    </div>
+    <div class="form-row">
+      ${renderFormField('时间维度', 'select', {options:['日','周','月','季度','年']})}
+      ${renderFormField('统计维度', 'select', {options:['按成员','按部门','按地区','按来源','按产品']})}
+    </div>
+    ${renderFormField('共享范围', 'select', {options:['仅自己','本部门','全部门']})}
+    <div class="text-sm text-muted">创建后可在报表编辑器中拖拽配置图表字段。</div>
+  `, '<button class="btn" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="closeModal()">创建</button>');
+}
+
 
 // Override approval flow with more detail
 PAGE_RENDERERS['ent-approval-flow'] = () => `
   <div class="page-header">
     <h1 class="page-title">审批流管理</h1>
-    <div class="page-actions"><button class="btn btn-primary">+ 新建审批流</button></div>
+    <div class="page-actions"><button class="btn btn-primary" onclick="openNewApprovalFlowModal()">+ 新建审批流</button></div>
   </div>
   <div class="text-sm text-muted mb-12">通过定义对象的审批触发规则和审批流程，保证管理流程标准化</div>
+  <div class="alert alert-info mb-12">💡 指定对象后，可拖拽排序；同一对象触发条件相同时优先级序号小的先触发。</div>
   <div class="filter-bar mb-12"><select class="filter-select"><option>全部审批对象</option><option>销售订单</option><option>报价单</option><option>付款单</option><option>费用单</option></select></div>
   ${renderTable(
     ['优先级','审批流名称','审批对象','触发事件','最新编辑时间','状态','操作'],
     [
-      ['1','其他审批','自定义','--','2025-08-01','<span class="table-tag success">启用中</span>','<button class="btn btn-sm btn-text">编辑</button>'],
-      ['1','报价单状态变更审批','报价单','状态变更','2025-06-15','<span class="table-tag success">启用中</span>','<button class="btn btn-sm btn-text">编辑</button>'],
-      ['1','采购付款单审批','付款单','状态变更','2025-07-20','<span class="table-tag success">启用中</span>','<button class="btn btn-sm btn-text">编辑</button>'],
-      ['1','回款登记审批','回款登记','状态变更','2025-05-10','<span class="table-tag">已停用</span>','<button class="btn btn-sm btn-text">启用</button>'],
-      ['1','费用单审批','费用单','状态变更','2025-04-08','<span class="table-tag">已停用</span>','<button class="btn btn-sm btn-text">启用</button>'],
+      ['⠿ 1','其他审批','自定义','--','2025-08-01','<span class="table-tag success">启用中</span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
+      ['⠿ 1','报价单状态变更审批','报价单','状态变更','2025-06-15','<span class="table-tag success">启用中</span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
+      ['⠿ 1','采购付款单审批','付款单','状态变更','2025-07-20','<span class="table-tag success">启用中</span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
+      ['⠿ 1','回款登记审批','回款登记','状态变更','2025-05-10','<span class="table-tag">已停用</span>','<button class="btn btn-sm btn-text">启用</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
+      ['⠿ 1','费用单审批','费用单','状态变更','2025-04-08','<span class="table-tag">已停用</span>','<button class="btn btn-sm btn-text">启用</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
     ],
     { total: 5 }
   )}
 `;
 
+function openNewApprovalFlowModal() {
+  openModal('新建审批流 · 步骤 1/2 基本信息配置', `
+    <div class="flex gap-8 mb-12"><span class="table-tag primary">1 基本信息配置</span><span class="table-tag">2 审批步骤配置</span></div>
+    ${renderFormField('审批流名称', 'text', {placeholder:'审批流名称'})}
+    ${renderFormField('审批流描述', 'textarea', {placeholder:'审批流描述'})}
+    <div class="divider"></div>
+    <div class="card-title mb-8">审批条件</div>
+    <div class="text-sm text-muted mb-8">当</div>
+    <div class="grid-2 mb-12">
+      ${renderFormField('触发对象', 'select', {options:['销售订单','报价单','付款单','回款登记','费用单','自定义']})}
+      ${renderFormField('触发事件', 'select', {options:['请选择触发事件','状态变更','金额超限','新建']})}
+    </div>
+    <div class="text-sm text-muted mb-8">时</div>
+    <div class="card-title mb-8">条件规则</div>
+    <div class="flex gap-12 mb-12">
+      <label><input type="radio" name="cond" checked /> 无条件执行</label>
+      <label><input type="radio" name="cond" /> 满足以下所有条件（AND）</label>
+      <label><input type="radio" name="cond" /> 满足以下任一条件（OR）</label>
+      <label><input type="radio" name="cond" /> 自定义</label>
+    </div>
+    <div class="filter-bar mb-8">
+      <select class="filter-select"><option>选择字段</option><option>订单金额</option><option>客户等级</option></select>
+      <select class="filter-select"><option>等于</option><option>大于</option><option>小于</option><option>包含</option></select>
+      <input class="filter-input" placeholder="值" />
+      <button class="btn btn-sm">+ 添加条件</button>
+    </div>
+  `, '<button class="btn" onclick="closeModal()">退出</button><button class="btn btn-primary" onclick="closeModal()">下一步</button>');
+}
+
 PAGE_RENDERERS['ent-task-settings'] = () => `
   <div class="page-header">
     <h1 class="page-title">任务设置</h1>
-    <div class="page-actions"><button class="btn btn-primary">+ 新建任务规则</button></div>
+    <div class="page-actions"><button class="btn btn-primary" onclick="navigateTo('enterprise','ent-task-tpl')">+ 新建任务规则</button></div>
   </div>
   ${renderTable(
     ['任务规则名称','任务规则描述','任务类型','创建人','创建时间','最后修改时间','启用状态','操作'],
     [
-      ['24小时内回复阿里询盘','要求及时处理阿里询盘','回复邮件','Admin','2025-01-15','2025-06-20','<span class="switch-track on" style="display:inline-block;transform:scale(.7)"></span>','<button class="btn btn-sm btn-text">编辑</button>'],
-      ['成交客户30天至少跟进1次','对成交客户设置周期性跟进','跟进客户','Admin','2025-01-15','2025-06-18','<span class="switch-track on" style="display:inline-block;transform:scale(.7)"></span>','<button class="btn btn-sm btn-text">编辑</button>'],
-      ['客户邮件在24小时内回复','约束客户邮件回复时效','回复邮件','Admin','2025-02-01','2025-06-15','<span class="switch-track on" style="display:inline-block;transform:scale(.7)"></span>','<button class="btn btn-sm btn-text">编辑</button>'],
-      ['询盘客户60天至少跟进1次','对询盘客户设置周期性跟进','跟进客户','Admin','2025-03-10','2025-05-20','<span class="switch-track on" style="display:inline-block;transform:scale(.7)"></span>','<button class="btn btn-sm btn-text">编辑</button>'],
+      ['24小时内回复阿里询盘','要求及时处理阿里询盘','回复邮件','Admin','2025-01-15','2025-06-20','<span class="switch-track on" style="display:inline-block;transform:scale(.7)" onclick="this.classList.toggle(\'on\')"></span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
+      ['成交客户30天至少跟进1次','对成交客户设置周期性跟进','跟进客户','Admin','2025-01-15','2025-06-18','<span class="switch-track on" style="display:inline-block;transform:scale(.7)" onclick="this.classList.toggle(\'on\')"></span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
+      ['客户邮件在24小时内回复','约束客户邮件回复时效','回复邮件','Admin','2025-02-01','2025-06-15','<span class="switch-track on" style="display:inline-block;transform:scale(.7)" onclick="this.classList.toggle(\'on\')"></span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
+      ['成交客户的邮件12小时内回复','对成交客户邮件设置更严格回复时效','回复邮件','Admin','2025-02-10','2025-06-12','<span class="switch-track on" style="display:inline-block;transform:scale(.7)" onclick="this.classList.toggle(\'on\')"></span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
+      ['询盘客户60天至少跟进1次','对询盘客户设置周期性跟进','跟进客户','Admin','2025-03-10','2025-05-20','<span class="switch-track on" style="display:inline-block;transform:scale(.7)" onclick="this.classList.toggle(\'on\')"></span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
     ],
-    { total: 4 }
+    { total: 5 }
   )}
 `;
+
+PAGE_RENDERERS['ent-task-tpl'] = () => {
+  const tabs = [{label:'跟进客户'},{label:'回复邮件'},{label:'回复TM'}];
+  const followTpls = [['久未成交的成交客户15天至少跟进1次','对久未成交的成交客户设置周期跟进'],['询盘客户30天至少跟进1次','对询盘客户设置30天周期跟进'],['目标客户90天未联系提醒','目标客户长时间未联系自动提醒']];
+  const mailTpls = [['新业务员收到的客户邮件在12小时内回复','对新业务员邮件设置时效'],['成交客户的邮件6小时内回复','对成交客户邮件设置更严格时效']];
+  const tmTpls = [['指定业务员在24小时内回复所有TM消息','对指定业务员 TM 消息设置时效'],['指定业务员在12小时内回复阿里询盘','对阿里询盘 TM 设置时效']];
+  const card = (rows) => rows.map(r => `<div class="card" style="border:1px solid var(--border-light)">
+    <div class="text-bold mb-4">${r[0]}</div>
+    <div class="text-sm text-muted mb-8">${r[1]}</div>
+    <button class="btn btn-sm btn-text">使用此模版新建任务规则</button>
+  </div>`).join('');
+  return `
+    <div class="page-header">
+      <h1 class="page-title">新建任务规则</h1>
+      <div class="page-actions"><button class="btn btn-sm" onclick="navigateTo('enterprise','ent-task-settings')">返回</button></div>
+    </div>
+    <div class="toggle-group mb-16">
+      <button class="toggle-btn active" onclick="switchToggle(this)">自定义新建</button>
+      <button class="toggle-btn" onclick="switchToggle(this)">使用模板新建</button>
+    </div>
+    ${renderTabs(tabs, 0, 'entTaskTpl')}
+    <div id="entTaskTpl_panels">
+      ${renderTabPanels('entTaskTpl', [`<div class="grid-3">${card(followTpls)}</div>`, `<div class="grid-3">${card(mailTpls)}</div>`, `<div class="grid-3">${card(tmTpls)}</div>`])}
+    </div>
+  `;
+};
+
 
 // ===== Favorites =====
 PAGE_RENDERERS['favorites'] = () => `
