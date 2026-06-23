@@ -294,13 +294,16 @@ function renderDetailFields(fields) {
 
 function renderFormField(label, type, opts = {}) {
   const req = opts.required ? '<span class="required">*</span>' : '';
+  const dis = opts.disabled ? ' disabled' : '';
   let input = '';
   switch (type) {
-    case 'text': input = `<input class="form-input" type="text" placeholder="${opts.placeholder || ''}" value="${opts.value || ''}" />`; break;
-    case 'select': input = `<select class="form-select">${(opts.options || []).map(o => `<option>${o}</option>`).join('')}</select>`; break;
-    case 'textarea': input = `<textarea class="form-textarea" placeholder="${opts.placeholder || ''}">${opts.value || ''}</textarea>`; break;
-    case 'date': input = `<input class="form-input" type="date" value="${opts.value || ''}" />`; break;
-    default: input = `<input class="form-input" type="text" placeholder="${opts.placeholder || ''}" />`;
+    case 'text': input = `<input class="form-input" type="text" placeholder="${opts.placeholder || ''}" value="${opts.value || ''}"${dis} />`; break;
+    case 'select': input = `<select class="form-select"${dis}>${(opts.options || []).map(o => `<option>${o}</option>`).join('')}</select>`; break;
+    case 'textarea': input = `<textarea class="form-textarea" placeholder="${opts.placeholder || ''}"${dis}>${opts.value || ''}</textarea>`; break;
+    case 'date': input = `<input class="form-input" type="date" value="${opts.value || ''}"${dis} />`; break;
+    case 'datetime': input = `<input class="form-input" type="datetime-local" value="${opts.value || ''}"${dis} />`; break;
+    case 'month': input = `<input class="form-input" type="month" value="${opts.value || ''}"${dis} />`; break;
+    default: input = `<input class="form-input" type="text" placeholder="${opts.placeholder || ''}" value="${opts.value || ''}"${dis} />`;
   }
   return `<div class="form-group"><label class="form-label">${label}${req}</label>${input}</div>`;
 }
@@ -4975,42 +4978,106 @@ PAGE_RENDERERS['td-subordinate'] = () => `
 `;
 
 // Work Report
-PAGE_RENDERERS['td-work-report'] = () => `
-  <div class="page-header">
-    <h1 class="page-title">工作报告</h1>
-    <div class="page-actions"><button class="btn btn-primary" onclick="openWorkReportModal()">+ 写工作报告</button></div>
-  </div>
-  ${renderTabs([{label:'我收到的'},{label:'我提交的'},{label:'团队提交的'},{label:'系统推送报告'},{label:'报告提交统计'},{label:'工作报告模版'}])}
-  <div class="flex-between mb-12">
-    <div class="flex gap-8">
-      <label class="form-switch"><input type="checkbox" /> 只看未读</label>
-      <select class="filter-select"><option>全部提交人</option></select>
+PAGE_RENDERERS['td-work-report'] = () => {
+  const tabs = [
+    {label:'我收到的'},
+    {label:'我提交的'},
+    {label:'团队提交的'},
+    {label:'系统推送报告'},
+    {label:'报告提交统计'},
+    {label:'工作报告模版'},
+  ];
+  const panelReceived = `<div class="flex-between mb-12">
+      <div class="flex gap-8">
+        <label class="form-switch"><input type="checkbox" /> 只看未读</label>
+        <select class="filter-select"><option>全部提交人</option><option>Bambi</option><option>Camila</option></select>
+        <select class="filter-select"><option>全部报告类型</option><option>日报</option><option>周报</option><option>月报</option></select>
+      </div>
+      <div class="btn-group"><button class="btn btn-sm">导出报告</button><button class="btn btn-sm">开启报告模版</button></div>
     </div>
-    <div class="btn-group"><button class="btn btn-sm">导出报告</button><button class="btn btn-sm">开启报告模版</button></div>
-  </div>
-  <div class="alert alert-info">💡 工作报告支持推送到钉钉群，可前往模版编辑配置</div>
-  <div class="empty-state"><div class="empty-icon">📝</div><div class="empty-text">暂无工作报告</div></div>
-`;
+    <div class="alert alert-info mb-12">💡 工作报告支持推送到钉钉群，可前往模版编辑配置</div>
+    ${renderTable(['报告标题','类型','提交人','提交时间','状态','操作'],
+      [['Bambi 的开发日报 06-21','日报','Bambi','2026-06-21 17:10','<span class="table-tag success">已读</span>','<button class="btn btn-sm btn-text">查看</button>'],
+       ['Camila 的周报 W25','周报','Camila','2026-06-19 18:00','<span class="table-tag primary">未读</span>','<button class="btn btn-sm btn-text">查看</button>'],
+       ['Jade 的开发日报 06-20','日报','Jade','2026-06-20 17:30','<span class="table-tag success">已读</span>','<button class="btn btn-sm btn-text">查看</button>']],
+      {total:8})}`;
+  const panelSubmitted = `${renderTable(['报告标题','类型','接收人','提交时间','状态','操作'],
+    [['我的开发日报 06-21','日报','主管 · Lisa','2026-06-21 17:10','<span class="table-tag success">按时提交</span>','<button class="btn btn-sm btn-text">查看</button>'],
+     ['我的周报 W24','周报','主管 · Lisa','2026-06-14 17:45','<span class="table-tag warning">迟交 15分钟</span>','<button class="btn btn-sm btn-text">查看</button>']],
+    {total:12})}`;
+  const panelTeam = `${renderTable(['报告标题','类型','提交人','部门','提交时间','状态'],
+    [['开发日报 06-21','日报','Bambi','业务开发一组','2026-06-21 17:10','<span class="table-tag success">按时</span>'],
+     ['周报 W25','周报','Camila','业务维护一组','2026-06-19 18:00','<span class="table-tag success">按时</span>'],
+     ['开发日报 06-20','日报','Amy','业务维护二组','2026-06-20 18:20','<span class="table-tag warning">迟交</span>']],
+    {total:24})}`;
+  const panelPush = `<div class="alert alert-info mb-12">💡 系统根据客户跟进、商机、订单等数据自动生成推送报告</div>
+    ${renderTable(['报告标题','生成时间','数据范围','操作'],
+      [['本周客户跟进汇总','2026-06-21 09:00','06-15 ~ 06-21','<button class="btn btn-sm btn-text">查看</button>'],
+       ['本月商机转化分析','2026-06-20 09:00','06-01 ~ 06-20','<button class="btn btn-sm btn-text">查看</button>']],
+      {total:6})}`;
+  const panelStat = `${renderTable(['成员','部门','应提交','已提交','按时提交','迟交','提交率'],
+    [['Bambi','业务开发一组','21','20','19','1','95%'],
+     ['Camila','业务维护一组','21','21','21','0','100%'],
+     ['Jade','业务开发二组','21','18','16','2','86%'],
+     ['Amy','业务维护二组','21','17','15','2','81%'],
+     ['合计','--','84','76','71','5','90%']],
+    {total:5})}`;
+  const panelTpl = `${renderTable(['模板名称','报告类型','提交频率','截止时间','推送方式','状态','操作'],
+    [['开发日报','日报','每天','17:30','系统+钉钉','<span class="table-tag success">启用</span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
+     ['周报','周报','每周五','18:00','系统','<span class="table-tag success">启用</span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
+     ['月报','月报','每月最后一天','18:00','系统','<span class="table-tag">停用</span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>']],
+    {total:3})}
+    <div class="mt-12"><button class="btn btn-primary" onclick="navigateTo('enterprise','ent-work-report-tpl')">+ 新建模板</button></div>`;
+  return `
+    <div class="page-header">
+      <h1 class="page-title">工作报告</h1>
+      <div class="page-actions">
+        <button class="btn btn-sm">📱 App 即刻写报告</button>
+        <button class="btn btn-primary" onclick="openWorkReportModal()">+ 写工作报告</button>
+      </div>
+    </div>
+    ${renderTabs(tabs, 0, 'tdWorkReport')}
+    <div id="tdWorkReport_panels">
+      ${renderTabPanels('tdWorkReport', [panelReceived, panelSubmitted, panelTeam, panelPush, panelStat, panelTpl])}
+    </div>
+  `;
+};
 
 function openWorkReportModal() {
   openDrawer('写工作报告', `
     <div class="alert alert-info mb-12">💡 草稿会实时保存 | 每天 00:00 ~ 当日 17:30 为按时提交，之后为迟交</div>
-    ${renderFormField('工作报告模版', 'select', {options:['开发日报','周报','月报']})}
-    ${renderFormField('接收人', 'text', {placeholder:'选择接收人'})}
-    ${renderFormField('报告标题', 'text', {placeholder:'报告标题'})}
+    <div class="form-section">
+      <div class="form-section-title">基础信息</div>
+      <div class="grid-2">
+        ${renderFormField('工作报告模版', 'select', {options:['开发日报','周报','月报']})}
+        ${renderFormField('报告标题', 'text', {placeholder:'报告标题'})}
+      </div>
+      ${renderFormField('接收人', 'text', {placeholder:'选择接收人'})}
+    </div>
     <div class="form-section">
       <div class="form-section-title">今日核心进展</div>
       <div class="text-sm text-muted mb-8">重点客户小结</div>
+      <div class="flex gap-8 mb-8">
+        <button class="btn btn-sm">插入关联对象</button>
+        <button class="btn btn-sm">插入客户</button>
+        <button class="btn btn-sm">插入商机</button>
+      </div>
+      <div class="rich-toolbar mb-8" style="display:flex;gap:4px;flex-wrap:wrap;padding:6px 8px;border:1px solid var(--border-light);border-radius:var(--radius);background:#f8f9fc">
+        ${['字号','行高','B','I','U','列表','对齐','链接'].map(t => `<button class="btn btn-sm" style="padding:2px 8px">${t}</button>`).join('')}
+      </div>
       <textarea class="form-textarea" placeholder="请输入今日核心进展..." style="min-height:100px"></textarea>
     </div>
     <div class="form-section">
       <div class="form-section-title">明日工作计划</div>
       <div class="text-sm text-muted mb-8">需要重点跟进的客户以及撬动点</div>
+      <div class="rich-toolbar mb-8" style="display:flex;gap:4px;flex-wrap:wrap;padding:6px 8px;border:1px solid var(--border-light);border-radius:var(--radius);background:#f8f9fc">
+        ${['字号','行高','B','I','U','列表','对齐','链接'].map(t => `<button class="btn btn-sm" style="padding:2px 8px">${t}</button>`).join('')}
+      </div>
       <textarea class="form-textarea" placeholder="请输入明日计划..." style="min-height:100px"></textarea>
     </div>
     <div class="form-section">
       <div class="form-section-title">今日跟进PI</div>
-      <div class="upload-area">上传附件（docx, xls, PDF, rar, zip, PNG, JPG，单个文件不超过 20MB）</div>
+      <div class="upload-area">📎 上传附件（docx, xls, PDF, rar, zip, PNG, JPG，单个文件不超过 20MB）</div>
     </div>
     <div class="form-section">
       <div class="form-section-title">其他考核目标完成情况</div>
@@ -5021,12 +5088,38 @@ function openWorkReportModal() {
         ${renderFormField('今日发送开发信数', 'text', {placeholder:'0'})}
       </div>
     </div>
+    <div class="form-section">
+      <div class="form-section-title">目标完成情况自动汇总</div>
+      <div class="text-sm text-muted mb-8">结果目标</div>
+      <div class="grid-2">
+        ${renderFormField('成交订单金额', 'text', {value:'¥4,200', disabled:true})}
+        ${renderFormField('赢单商机金额', 'text', {value:'¥3,100', disabled:true})}
+        ${renderFormField('每日赢单目标完成率', 'text', {value:'80%', disabled:true})}
+        ${renderFormField('新建商机数', 'text', {value:'1', disabled:true})}
+      </div>
+      <div class="text-sm text-muted mb-8 mt-12">过程目标</div>
+      <div class="grid-2">
+        ${renderFormField('新建客户数', 'text', {value:'1', disabled:true})}
+        ${renderFormField('发送邮件数', 'text', {value:'12', disabled:true})}
+        ${renderFormField('新建跟进数', 'text', {value:'5', disabled:true})}
+        ${renderFormField('今日发送开发信数', 'text', {value:'8', disabled:true})}
+      </div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">客户跟进动态自动汇总</div>
+      <div class="text-sm text-muted">今日跟进 SWISS HAIR CLUB、Bono Hair、Pacific Corp 等 5 家客户，详见关联对象。</div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">日程自动汇总</div>
+      <div class="text-sm text-muted">今日日程：10:00 跟进 SWISS HAIR CLUB（已完成）、14:00 周会（已完成）。</div>
+    </div>
   `, `
     <button class="btn" onclick="closeDrawer()">取消</button>
     <button class="btn">存草稿</button>
     <button class="btn btn-primary" onclick="closeDrawer()">提交</button>
   `);
 }
+
 
 // ===== 10. Collaboration / 协同模块 =====
 PAGE_RENDERERS['collab-schedule'] = () => `
