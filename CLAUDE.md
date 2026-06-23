@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 这是一个 CRM 的 H5 静态原型，用来把 `crm_xiaoman_prototype_spec.md` 里的页面说明还原成可在浏览器中点击走查的界面。仓库里没有后端、没有构建工具、没有包管理器；页面由 `index.html` 提供壳，`js/app.js` 负责路由、渲染和交互，`css/style.css` 负责样式。
 
 ## 常用命令
-- 本地预览：`python3 -m http.server 8000`，然后打开 `http://localhost:8000`
+- 本地预览：`npx http-server . -p 9090`，然后打开 `http://localhost:9090`
 - 备用预览：`npx serve .`
 - 语法检查：`node -c js/app.js`
 - 仓库没有独立的 build / lint / 单元测试脚本；改动后用浏览器直接走查对应页面，重点检查 hash 路由、抽屉、弹窗、tab 切换和列表页。

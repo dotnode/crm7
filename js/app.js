@@ -126,6 +126,9 @@ const SUBMENUS = {
 let currentNav = 'dashboard';
 let currentSubmenu = '';
 let activeDrawer = null;
+// 工作台日程视图状态
+let dashScheduleView = 'week'; // week | month | list
+let dashScheduleOffset = 0; // 相对当前周/月的偏移
 
 // ===== Router =====
 function navigateTo(page, sub) {
@@ -146,6 +149,8 @@ function handleRoute() {
   renderSidebar();
   renderSubmenu();
   renderContent();
+  refreshTopbarSearchTypes();
+  closeAllTopbarPanels();
 }
 
 window.addEventListener('hashchange', handleRoute);
@@ -237,11 +242,12 @@ function renderPagination(total, pageSize) {
   const pages = Math.ceil(total / pageSize) || 1;
   return `<div class="pagination">
     <span>共 ${total} 条</span>
-    <span class="page-btn">‹</span>
-    ${Array.from({length: Math.min(pages, 5)}, (_, i) => `<span class="page-btn ${i === 0 ? 'active' : ''}">${i + 1}</span>`).join('')}
+    <span class="page-btn" onclick="alert('上一页')">‹</span>
+    ${Array.from({length: Math.min(pages, 5)}, (_, i) => `<span class="page-btn ${i === 0 ? 'active' : ''}" onclick="alert('第'+${i+1}+'页')">${i + 1}</span>`).join('')}
     ${pages > 5 ? '<span>...</span>' : ''}
-    <span class="page-btn">›</span>
-    <select>${[10,20,50].map(n => `<option ${n===pageSize?'selected':''}>${n} 条/页</option>`).join('')}</select>
+    <span class="page-btn" onclick="alert('下一页')">›</span>
+    <select onchange="alert('每页'+this.value+'条')">${[10,20,50].map(n => `<option ${n===pageSize?'selected':''}>${n} 条/页</option>`).join('')}</select>
+    <span class="text-sm text-muted" style="display:flex;align-items:center;gap:4px">跳至 <input class="page-jump" type="number" min="1" max="${pages}" value="1" style="width:48px;height:28px;border:1px solid var(--border);border-radius:var(--radius-sm);text-align:center"/> 页</span>
   </div>`;
 }
 
@@ -299,6 +305,189 @@ function renderFormField(label, type, opts = {}) {
   return `<div class="form-group"><label class="form-label">${label}${req}</label>${input}</div>`;
 }
 
+// ===== Topbar Interaction =====
+// 按当前导航联动全局搜索类型（spec 1.2：搜索类型会随当前模块显示）
+const SEARCH_TYPE_MAP = {
+  favorites: ['全部', '常用', '页面', '成员'],
+  dashboard: ['全部', '客户', '线索', '商机', '成员'],
+  mail: ['全部', '邮件', '客户', '线索', '成员'],
+  communication: ['全部', '会话', '客户', '线索', '成员'],
+  leads: ['线索', '客户', '商机', '成员'],
+  customers: ['客户', '线索', '商机', '成员'],
+  business: ['商机', '客户', '线索', '成员'],
+  transaction: ['订单', '产品', '客户', '商机'],
+  'team-data': ['成员', '目标', '报表'],
+  collaboration: ['成员', '日程', '任务', '审批'],
+  enterprise: ['成员', '设置项', '页面'],
+};
+const GLOBAL_SEARCH_DATA = {
+  客户: [
+    { name: 'ABC Company', sub: '美国 · 5星客户', to: ['customers', 'customers-list'] },
+    { name: 'Global Trade Ltd', sub: '英国 · 4星客户', to: ['customers', 'customers-list'] },
+    { name: 'Shenzhen Tech Co', sub: '中国 · 3星客户', to: ['customers', 'customers-list'] },
+  ],
+  线索: [
+    { name: 'John Smith', sub: '来源: 阿里询盘', to: ['leads', 'leads-list'] },
+    { name: 'Sarah Lee', sub: '来源: 展会', to: ['leads', 'leads-list'] },
+    { name: 'Mike Wilson', sub: '来源: 邮件', to: ['leads', 'leads-list'] },
+  ],
+  商机: [
+    { name: 'DLBV 特单', sub: '阶段: 谈判报价 · ¥120,000', to: ['business', 'business-list'] },
+    { name: 'Hair Extensions 整柜', sub: '阶段: 需求确认 · $45,000', to: ['business', 'business-list'] },
+  ],
+  成员: [
+    { name: '张伟', sub: '销售一组 · 主管', to: ['team-data', 'td-completion'] },
+    { name: '李娜', sub: '销售二组 · 销售', to: ['team-data', 'td-completion'] },
+  ],
+  邮件: [
+    { name: 'Re: Product Catalog Request', sub: 'John Smith · 14:30', to: ['mail', 'mail-inbox'] },
+    { name: 'Order Confirmation #12345', sub: 'Sarah Lee · 11:20', to: ['mail', 'mail-inbox'] },
+  ],
+  订单: [
+    { name: 'SO-20260623-001', sub: 'ABC Company · ¥120,000', to: ['transaction', 'tx-order'] },
+  ],
+  产品: [
+    { name: '男士发块 (Men Toupee)', sub: '多规格 · ¥320', to: ['transaction', 'tx-product'] },
+  ],
+};
+
+function updateSearchType(val) { /* 类型切换占位，搜索时以当前选中类型为准 */ }
+
+function refreshTopbarSearchTypes() {
+  const sel = document.getElementById('searchType');
+  if (!sel) return;
+  const types = SEARCH_TYPE_MAP[currentNav] || ['全部'];
+  const cur = sel.value && types.includes(sel.value) ? sel.value : types[0];
+  sel.innerHTML = types.map(t => `<option ${t === cur ? 'selected' : ''}>${t}</option>`).join('');
+}
+
+function onGlobalSearchInput(val) {
+  const box = document.getElementById('globalSearchResult');
+  if (!val || !val.trim()) { if (box) box.style.display = 'none'; return; }
+  const type = (document.getElementById('searchType') || {}).value || '全部';
+  // 收集命中数据
+  let hits = [];
+  if (type === '全部') {
+    Object.keys(GLOBAL_SEARCH_DATA).forEach(k => GLOBAL_SEARCH_DATA[k].forEach(d => hits.push({ ...d, cat: k })));
+  } else if (GLOBAL_SEARCH_DATA[type]) {
+    hits = GLOBAL_SEARCH_DATA[type].map(d => ({ ...d, cat: type }));
+  }
+  const q = val.trim().toLowerCase();
+  hits = hits.filter(h => (h.name + h.sub).toLowerCase().includes(q)).slice(0, 8);
+  if (!hits.length) {
+    box.innerHTML = `<div class="gsr-empty">无匹配结果</div>`;
+  } else {
+    box.innerHTML = hits.map(h => {
+      const target = h.to ? `navigateTo('${h.to[0]}','${h.to[1]}');closeGlobalSearch()` : 'closeGlobalSearch()';
+      return `<div class="gsr-item" onclick="${target}">
+        <span class="gsr-cat">${h.cat}</span>
+        <span class="gsr-name">${h.name}</span>
+        <span class="gsr-sub">${h.sub}</span>
+      </div>`;
+    }).join('');
+  }
+  box.style.display = 'block';
+}
+
+function closeGlobalSearch() {
+  const box = document.getElementById('globalSearchResult');
+  if (box) box.style.display = 'none';
+}
+
+function doGlobalSearch() {
+  const v = (document.getElementById('globalSearchInput') || {}).value;
+  if (v && v.trim()) alert('全局搜索：' + v + '\n搜索类型：' + ((document.getElementById('searchType') || {}).value || '全部'));
+}
+
+document.addEventListener('click', (e) => {
+  const t = e.target;
+  if (!t.closest('.topbar-search')) {
+    const box = document.getElementById('globalSearchResult');
+    if (box) box.style.display = 'none';
+  }
+  if (!t.closest('.topbar-actions') && !t.closest('.topbar-panel')) {
+    closeAllTopbarPanels();
+  }
+});
+
+function closeAllTopbarPanels() {
+  ['tm', 'msg', 'cs', 'help', 'user'].forEach(k => {
+    const p = document.getElementById('topbarPanel-' + k);
+    if (p) p.style.display = 'none';
+  });
+}
+
+function toggleTopbarPanel(key, ev) {
+  ev && ev.stopPropagation();
+  const panel = document.getElementById('topbarPanel-' + key);
+  const willOpen = panel.style.display === 'none';
+  closeAllTopbarPanels();
+  if (willOpen) {
+    panel.innerHTML = renderTopbarPanel(key);
+    panel.style.display = 'block';
+  }
+}
+
+function renderTopbarPanel(key) {
+  switch (key) {
+    case 'tm':
+      return `<div class="tp-head">TM 即时沟通</div>
+        <div class="tp-list">
+          <div class="tp-item" onclick="alert('打开与客户 John Smith 的 TM 会话')">
+            <div class="tp-avatar">J</div><div><div class="tp-name">John Smith</div><div class="tp-sub">在线 · ABC Company</div></div>
+          </div>
+          <div class="tp-item" onclick="alert('打开与客户 Sarah Lee 的 TM 会话')">
+            <div class="tp-avatar">S</div><div><div class="tp-name">Sarah Lee</div><div class="tp-sub">离线 · Global Trade</div></div>
+          </div>
+          <div class="tp-item" onclick="alert('打开与客户 Mike Wilson 的 TM 会话')">
+            <div class="tp-avatar">M</div><div><div class="tp-name">Mike Wilson</div><div class="tp-sub">在线 · mike@trade.co</div></div>
+          </div>
+        </div>
+        <div class="tp-foot" onclick="alert('进入 TM 沟通中心')">查看全部联系人与会话 ›</div>`;
+    case 'msg':
+      return `<div class="tp-head flex-between">系统消息 <span class="text-sm text-primary" onclick="alert('全部标为已读')">全部标为已读</span></div>
+        <div class="tp-list">
+          ${[
+            ['系统', '您分配到 3 个新公海客户，请及时跟进', '今天 14:30'],
+            ['任务', 'AI 建议：商机「DLBV 特单」停留谈判报价已超 7 天', '今天 10:15'],
+            ['审批', '张伟提交的「差旅报销 ¥3,200」待您审批', '昨天 18:40'],
+            ['邮件', '收到新询盘邮件：Re: Product Catalog Request', '昨天 09:20'],
+            ['目标', '本月销售额已完成 78%，距离目标还差 ¥52,000', '06-20'],
+          ].map(m => `<div class="tp-item tp-msg" onclick="closeAllTopbarPanels()">
+            <div class="tp-msg-tag ${m[0]==='任务'?'warning':m[0]==='审批'?'danger':m[0]==='目标'?'primary':'muted'}">${m[0]}</div>
+            <div class="flex-1"><div class="tp-name">${m[1]}</div><div class="tp-sub">${m[2]}</div></div>
+          </div>`).join('')}
+        </div>
+        <div class="tp-foot" onclick="closeAllTopbarPanels()">查看全部消息 ›</div>`;
+    case 'cs':
+      return `<div class="tp-head">在线客服</div>
+        <div class="tp-body">
+          <div class="tp-customer"><div class="tp-avatar" style="background:linear-gradient(135deg,#16a34a,#22c55e)">客</div>
+            <div><div class="tp-name">小满在线客服</div><div class="tp-sub">服务时间 09:00-21:00</div></div></div>
+          <button class="btn btn-primary w-full" onclick="alert('正在接入在线客服…')">开始对话</button>
+          <div class="tp-sub mt-12">常见问题</div>
+          ${['如何导入客户？','怎样配置跟进规则？','邮件模板如何设置？','公海客户如何分配？'].map(q => `<div class="tp-faq" onclick="alert('查看常见问题：${q}')">${q}</div>`).join('')}
+        </div>`;
+    case 'help':
+      return `<div class="tp-head">帮助中心</div>
+        <div class="tp-body">
+          ${[['📖 使用手册','打开产品使用手册'],['🎓 新手教程','进入新手引导'],['❓ 常见问题','查看 FAQ'],['💬 意见反馈','提交意见与建议'],['☎️ 联系我们','获取联系方式']].map(h => `<div class="tp-help-item" onclick="alert('${h[1]}')"><span>${h[0].split(' ')[0]}</span>${h[0].split(' ').slice(1).join(' ')} <span class="tp-arrow">›</span></div>`).join('')}
+        </div>`;
+    case 'user':
+      return `<div class="tp-user-head">
+          <div class="tp-avatar" style="width:44px;height:44px;font-size:16px">U</div>
+          <div><div class="tp-name">Olivia · 销售主管</div><div class="tp-sub">admin@company.com</div></div>
+        </div>
+        <div class="tp-divider"></div>
+        <div class="tp-body">
+          ${[['个人中心'],['账号设置'],['消息通知设置'],['切换企业'],['修改密码']].map(m => `<div class="tp-help-item" onclick="alert('${m}')"><span>›</span> ${m}</div>`).join('')}
+          <div class="tp-divider"></div>
+          <div class="tp-help-item tp-logout" onclick="alert('退出登录')"><span>↪</span> 退出登录</div>
+        </div>`;
+  }
+  return '';
+}
+
 // ===== Drawer & Modal =====
 // 写跟进入口展开为完整表单（客户/线索/商机详情页共用）
 // 按 spec 6.5 动态 Tab：写题、AI写跟进、选择模板、跟进类型、快捷文本分组、正文、跟进联系人、关联业务、下次跟进日程
@@ -354,6 +543,7 @@ function collapseFollowUp(formEl) {
   formEl.outerHTML = '<div class="follow-up-input" onclick="expandFollowUp(this)">点击这里记录跟进细节，同步最新进展。</div>';
 }
 function openDrawer(title, bodyHtml, footerHtml) {
+  closeAllTopbarPanels();
   document.getElementById('drawerTitle').textContent = title;
   document.getElementById('drawerBody').innerHTML = bodyHtml;
   document.getElementById('drawerFooter').innerHTML = footerHtml || '';
@@ -367,6 +557,7 @@ function closeDrawer() {
 }
 
 function openModal(title, bodyHtml, footerHtml) {
+  closeAllTopbarPanels();
   document.getElementById('modalHeader').innerHTML = title;
   document.getElementById('modalBody').innerHTML = bodyHtml;
   document.getElementById('modalFooter').innerHTML = footerHtml || '';
@@ -392,12 +583,12 @@ PAGE_RENDERERS['dashboard'] = () => {
     <div class="card mb-16">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
         <div>
-          <div style="font-size:18px;font-weight:600">Hi，欢迎回来 👋</div>
+          <div style="font-size:18px;font-weight:600">Hi，Olivia，欢迎回来 👋</div>
           <div class="text-muted text-sm mt-12">UTC+8 ${new Date().toLocaleString('zh-CN')}</div>
         </div>
         <div class="btn-group">
-          <button class="btn btn-sm">汇率计算器</button>
-          <button class="btn btn-sm">工作台配置</button>
+          <button class="btn btn-sm" onclick="openExchangeCalcModal()">💱 汇率计算器</button>
+          <button class="btn btn-sm" onclick="openDashboardConfigModal()">⚙ 工作台配置</button>
         </div>
       </div>
     </div>
@@ -407,23 +598,16 @@ PAGE_RENDERERS['dashboard'] = () => {
         <div class="btn-group">
           <button class="btn btn-sm btn-primary" onclick="openNewScheduleModal()">+ 新建日程</button>
           <div class="toggle-group">
-            <button class="toggle-btn active">周</button>
-            <button class="toggle-btn">月</button>
-            <button class="toggle-btn">列表</button>
+            <button class="toggle-btn ${dashScheduleView==='week'?'active':''}" onclick="setDashScheduleView('week')">周</button>
+            <button class="toggle-btn ${dashScheduleView==='month'?'active':''}" onclick="setDashScheduleView('month')">月</button>
+            <button class="toggle-btn ${dashScheduleView==='list'?'active':''}" onclick="setDashScheduleView('list')">列表</button>
           </div>
-          <button class="btn btn-sm">‹ 上一段</button>
-          <button class="btn btn-sm">今天</button>
-          <button class="btn btn-sm">下一段 ›</button>
+          <button class="btn btn-sm" onclick="shiftDashSchedule(-1)">‹ 上一段</button>
+          <button class="btn btn-sm" onclick="dashScheduleOffset=0;renderContent()">今天</button>
+          <button class="btn btn-sm" onclick="shiftDashSchedule(1)">下一段 ›</button>
         </div>
       </div>
-      <div class="calendar-grid">
-        ${['周一','周二','周三','周四','周五','周六','周日'].map(d => `<div class="calendar-day-header">${d}</div>`).join('')}
-        ${Array.from({length:7}, (_, i) => {
-          const d = new Date(); d.setDate(d.getDate() - d.getDay() + 1 + i);
-          const isToday = d.toDateString() === new Date().toDateString();
-          return `<div class="calendar-cell ${isToday ? 'today' : ''}"><div class="cell-date">${d.getMonth()+1}/${d.getDate()}</div></div>`;
-        }).join('')}
-      </div>
+      ${renderDashScheduleBody()}
     </div>
     <div class="card">
       <div class="flex-between mb-12">
@@ -432,36 +616,373 @@ PAGE_RENDERERS['dashboard'] = () => {
           <div class="text-sm text-muted" style="margin-top:4px">基于 AI 分析与管理者配置，为你推荐以下跟进任务。立即行动，持续提升业绩！</div>
         </div>
         <div class="btn-group">
-          <button class="btn btn-sm">显示设置</button>
-          <button class="btn btn-sm">全部已读</button>
-          <button class="btn btn-sm">全部忽略</button>
+          <button class="btn btn-sm" onclick="openDashTaskDisplayModal()">显示设置</button>
+          <button class="btn btn-sm" onclick="alert('已将全部跟进任务标记为已读')">全部已读</button>
+          <button class="btn btn-sm" onclick="ignoreAllDashTasks()">全部忽略</button>
         </div>
       </div>
-      ${[
-        {title:'建议跟进客户 ABC Company', desc:'该客户15天未联系，建议尽快跟进', source:'AI 推荐'},
-        {title:'回复邮件: Re: Product Inquiry', desc:'收到新询盘邮件，建议24小时内回复', source:'管理者规则'},
-        {title:'商机推进: DLBV 特单', desc:'商机停留在谈判报价阶段已超过7天', source:'AI 推荐'},
-      ].map(task => `
-        <div class="card mb-8" style="border:1px solid var(--border-light);box-shadow:none">
-          <div class="flex-between">
-            <div>
-              <div style="font-weight:500;margin-bottom:4px">${task.title}</div>
-              <div class="text-sm text-muted">${task.desc}</div>
-              <div class="text-sm" style="margin-top:4px"><span class="table-tag primary">${task.source}</span></div>
-            </div>
-            <div class="btn-group">
-              <button class="btn btn-sm btn-primary">生成话术</button>
-              <button class="btn btn-sm">生成邮件</button>
-              <button class="btn btn-sm">忽略</button>
-            </div>
-          </div>
-        </div>
-      `).join('')}
+      <div id="dashTaskList">${renderDashTaskList()}</div>
     </div>
   `;
 };
 
+function renderDashScheduleBody() {
+  const dayHeaders = ['周一','周二','周三','周四','周五','周六','周日'];
+  // 基线日期：当前周/月的起点 + offset
+  const base = new Date();
+  if (dashScheduleView === 'week') {
+    base.setDate(base.getDate() - base.getDay() + 1 + dashScheduleOffset * 7);
+    const cells = Array.from({length:7}, (_, i) => {
+      const d = new Date(base); d.setDate(base.getDate() + i);
+      const isToday = d.toDateString() === new Date().toDateString();
+      const evs = dashScheduleEvents(d);
+      return `<div class="calendar-cell ${isToday?'today':''}"><div class="cell-date">${d.getMonth()+1}/${d.getDate()} ${dayHeaders[i]}</div>${evs.map(e=>`<div class="cal-event">${e}</div>`).join('')}</div>`;
+    }).join('');
+    return `<div class="calendar-grid">${dayHeaders.map(d=>`<div class="calendar-day-header">${d}</div>`).join('')}${cells}</div>`;
+  }
+  if (dashScheduleView === 'month') {
+    const first = new Date(base.getFullYear(), base.getMonth() + dashScheduleOffset, 1);
+    const startWeekday = (first.getDay() + 6) % 7; // 周一为首
+    const daysInMonth = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
+    const cells = [];
+    for (let i = 0; i < startWeekday; i++) cells.push(`<div class="calendar-cell muted"></div>`);
+    for (let day = 1; day <= daysInMonth; day++) {
+      const d = new Date(first.getFullYear(), first.getMonth(), day);
+      const isToday = d.toDateString() === new Date().toDateString();
+      const evs = dashScheduleEvents(d);
+      cells.push(`<div class="calendar-cell ${isToday?'today':''}"><div class="cell-date">${day}</div>${evs.map(e=>`<div class="cal-event">${e}</div>`).join('')}</div>`);
+    }
+    return `<div class="calendar-grid">${dayHeaders.map(d=>`<div class="calendar-day-header">${d}</div>`).join('')}${cells.join('')}</div>`;
+  }
+  // list
+  const items = [];
+  for (let i = 0; i < 14; i++) {
+    const d = new Date(); d.setDate(d.getDate() + i + dashScheduleOffset * 7);
+    const evs = dashScheduleEvents(d);
+    if (evs.length) items.push(`<div class="dash-sched-list-item"><div class="dsl-date">${d.getMonth()+1}/${d.getDate()} ${dayHeaders[(d.getDay()+6)%7]}</div><div class="dsl-events">${evs.map(e=>`<div class="cal-event">${e}</div>`).join('')}</div></div>`);
+  }
+  return items.length ? `<div class="dash-sched-list">${items.join('')}</div>` : `<div class="empty-state" style="padding:40px"><div class="empty-text">该时段暂无日程</div></div>`;
+}
+
+// 简要日程样例：根据日期生成固定伪事件
+function dashScheduleEvents(date) {
+  const key = date.getDate() % 7;
+  const pool = [
+    ['10:00 与客户电话'],
+    ['14:00 商机推进会议'],
+    ['09:30 发送报价单'],
+    ['16:00 跟进 ABC Company'],
+    ['11:00 团队周会'],
+    ['15:30 寄送样品', '18:00 邮件回复'],
+    ['回复询盘邮件'],
+  ];
+  return pool[key] || [];
+}
+
+function setDashScheduleView(v) { dashScheduleView = v; renderContent(); }
+function shiftDashSchedule(n) { dashScheduleOffset += n; renderContent(); }
+
+// 工作台跟进任务列表（带 id 以支持单条操作）
+const DASH_TASKS = [
+  { id: 'dt1', title: '建议跟进客户 ABC Company', desc: '该客户15天未联系，建议尽快跟进', source: 'AI 推荐', done: false },
+  { id: 'dt2', title: '回复邮件: Re: Product Inquiry', desc: '收到新询盘邮件，建议24小时内回复', source: '管理者规则', done: false },
+  { id: 'dt3', title: '商机推进: DLBV 特单', desc: '商机停留在谈判报价阶段已超过7天', source: 'AI 推荐', done: false },
+];
+
+function renderDashTaskList() {
+  const tasks = DASH_TASKS.filter(t => !t.done);
+  if (!tasks.length) return `<div class="empty-state" style="padding:48px"><div class="empty-icon">🎉</div><div class="empty-text">跟进任务已全部处理，干得漂亮！</div></div>`;
+  return tasks.map(task => `
+    <div class="card mb-8" style="border:1px solid var(--border-light);box-shadow:none">
+      <div class="flex-between">
+        <div>
+          <div style="font-weight:500;margin-bottom:4px">${task.title}</div>
+          <div class="text-sm text-muted">${task.desc}</div>
+          <div class="text-sm" style="margin-top:4px"><span class="table-tag ${task.source==='AI 推荐'?'primary':'success'}">${task.source}</span></div>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-sm btn-primary" onclick="dashTaskGenScript('${task.id}')">生成话术</button>
+          <button class="btn btn-sm" onclick="dashTaskGenMail('${task.id}')">生成邮件</button>
+          ${task.id==='dt2' ? `<button class="btn btn-sm" onclick="navigateTo('mail','mail-inbox')">回复</button>` : ''}
+          <button class="btn btn-sm" onclick="ignoreDashTask('${task.id}')">忽略</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function ignoreDashTask(id) {
+  const t = DASH_TASKS.find(x => x.id === id);
+  if (t) t.done = true;
+  const el = document.getElementById('dashTaskList');
+  if (el) el.innerHTML = renderDashTaskList();
+}
+function ignoreAllDashTasks() {
+  openModal('确认忽略全部', '确定将所有跟进任务忽略吗？此操作不可撤销。',
+    '<button class="btn" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="confirmIgnoreAllDashTasks()">确定</button>');
+}
+function confirmIgnoreAllDashTasks() {
+  DASH_TASKS.forEach(t => t.done = true);
+  closeModal();
+  const el = document.getElementById('dashTaskList');
+  if (el) el.innerHTML = renderDashTaskList();
+}
+function dashTaskGenScript(id) { alert('✨ AI 正在根据任务生成跟进话术…'); }
+function dashTaskGenMail(id) { navigateTo('mail','mail-compose'); }
+
+// 汇率计算器弹窗
+function openExchangeCalcModal() {
+  openModal('💱 汇率计算器', `
+    <div class="form-group">
+      <label class="form-label">金额</label>
+      <input class="form-input" type="number" id="xcAmount" value="1000" oninput="calcExchange()" />
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">从</label>
+        <select class="form-select" id="xcFrom" onchange="calcExchange()">
+          <option>USD</option><option>EUR</option><option>CNY</option><option>GBP</option><option>JPY</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">到</label>
+        <select class="form-select" id="xcTo" onchange="calcExchange()">
+          <option>USD</option><option>EUR</option><option selected>CNY</option><option>GBP</option><option>JPY</option>
+        </select>
+      </div>
+    </div>
+    <div class="alert alert-info" id="xcResult" style="margin-bottom:0">1000 USD ≈ 7280.00 CNY（参考汇率 1 USD = 7.28 CNY）</div>
+    <div class="form-tip">汇率为参考值，实际交易以银行汇率为准。</div>
+  `, '<button class="btn" onclick="closeModal()">关闭</button>');
+  calcExchange();
+}
+const XC_RATES = { USD:1, EUR:1.09, CNY:7.28, GBP:1.27, JPY:156.5 };
+function calcExchange() {
+  const amt = parseFloat(document.getElementById('xcAmount').value) || 0;
+  const from = document.getElementById('xcFrom').value;
+  const to = document.getElementById('xcTo').value;
+  const usd = amt * XC_RATES[from];
+  const out = (usd / XC_RATES[to]).toFixed(2);
+  document.getElementById('xcResult').innerHTML = `${amt} ${from} ≈ ${out} ${to}（参考汇率 1 ${from} = ${(XC_RATES[from]/XC_RATES[to]).toFixed(4)} ${to}）`;
+}
+
+// 工作台配置弹窗
+function openDashboardConfigModal() {
+  const modules = [['日程','日程视图区',true],['跟进任务','AI 推荐跟进任务',true],['数据洞察','关键数据指标',false],['目标概览','本月目标进度',false],['快捷工具','常用快捷入口',false]];
+  openModal('⚙ 工作台配置', `
+    <div class="text-sm text-muted mb-12">勾选要在工作台显示的模块，调整后即时生效。</div>
+    ${modules.map(m => `
+      <label class="dash-cfg-item">
+        <span><span style="font-weight:600">${m[0]}</span><span class="text-muted text-sm" style="margin-left:8px">${m[1]}</span></span>
+        <span class="switch-track ${m[2]?'on':''}" onclick="this.classList.toggle('on')"></span>
+      </label>
+    `).join('')}
+  `, '<button class="btn" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="closeModal();alert(\'工作台配置已保存\')">保存</button>');
+}
+
+// 显示设置弹窗
+function openDashTaskDisplayModal() {
+  const fields = ['任务来源','客户名称','任务标题','任务描述','截止时间','优先级','创建时间'];
+  openModal('跟进任务显示设置', `
+    <div class="text-sm text-muted mb-12">选择要显示的任务字段与推荐来源。</div>
+    <div class="form-section-title" style="margin-bottom:10px;">显示字段</div>
+    <div class="grid-2 mb-12">
+      ${fields.map((f,i)=>`<label class="form-switch"><input type="checkbox" ${i<5?'checked':''}/> ${f}</label>`).join('')}
+    </div>
+    <div class="form-section-title" style="margin-bottom:10px;">推荐来源</div>
+    <div class="flex gap-12">
+      <label class="form-switch"><input type="checkbox" checked/> AI 推荐</label>
+      <label class="form-switch"><input type="checkbox" checked/> 管理者规则</label>
+      <label class="form-switch"><input type="checkbox"/> 系统提醒</label>
+    </div>
+  `, '<button class="btn" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="closeModal();renderContent()">确定</button>');
+}
+
 // ===== 2. Mail / 邮件模块 =====
+// 邮件文件夹左侧导航树（spec 3.1.1）
+const MAIL_FOLDERS = [
+  { id: 'mail-inbox', label: '收件箱', badge: 156 },
+  { id: 'mail-pending', label: '待处理邮件', badge: 4, badgeType: 'warning' },
+  { id: 'mail-unread', label: '未读邮件', badge: 5 },
+  { id: 'mail-draft', label: '草稿箱' },
+  { id: 'mail-sent', label: '发件箱' },
+  { id: 'mail-mass', label: '群发箱' },
+  { id: 'mail-folder', label: '文件夹', group: '文件夹', expandable: true },
+  { id: 'mail-ad', label: '广告邮件', indent: true },
+  { id: 'mail-star', label: '关注', group: '标签邮件' },
+  { id: 'mail-tag', label: '自定义标签', indent: true },
+  { id: 'mail-deleted', label: '已删除邮件' },
+  { id: 'mail-spam', label: '垃圾邮件' },
+  { id: 'mail-track', label: '追踪信息' },
+];
+
+function renderMailFolderTree(active) {
+  let html = '<div class="mail-foldertree-scroll">';
+  let lastGroup = null;
+  MAIL_FOLDERS.forEach(f => {
+    if (f.group && f.group !== lastGroup) { lastGroup = f.group; html += `<div class="tree-group-title">${f.group}</div>`; }
+    html += `<div class="tree-item ${active === f.id ? 'active' : ''} ${f.indent ? 'tree-indent' : ''}" onclick="navigateTo('mail','${f.id}')">
+      <span>${f.label}</span>
+      ${f.badge ? `<span class="count ${f.badgeType === 'warning' ? 'warning' : ''}">${f.badge}</span>` : ''}
+    </div>`;
+  });
+  html += '</div>';
+  return html;
+}
+
+// 邮件高级搜索弹窗
+function openMailAdvancedSearch() {
+  openModal('邮件高级搜索', `
+    <div class="grid-2">
+      ${renderFormField('发件人','text',{placeholder:'发件人名称或邮箱'})}
+      ${renderFormField('收件人','text',{placeholder:'收件人名称或邮箱'})}
+      ${renderFormField('主题包含','text',{placeholder:'主题关键字'})}
+      ${renderFormField('正文包含','text',{placeholder:'正文关键字'})}
+      ${renderFormField('开始日期','date',{})}
+      ${renderFormField('结束日期','date',{})}
+      ${renderFormField('是否有附件','select',{options:['不限','有附件','无附件']})}
+      ${renderFormField('是否已读','select',{options:['不限','已读','未读']})}
+    </div>
+    <div class="form-group"><label class="form-label">标签</label>
+      <select class="form-select"><option>不限</option><option>客户</option><option>同事</option><option>通讯录</option><option>其他</option></select>
+    </div>
+  `, '<button class="btn" onclick="closeModal()">取消</button><button class="btn" onclick="resetMailSearch()" style="margin-right:auto">重置</button><button class="btn btn-primary" onclick="closeModal();alert(\'搜索已执行\')">搜索</button>');
+}
+function resetMailSearch() {}
+
+// 内联邮件阅读面板（右侧第三栏）
+let mailSelectedItem = 0;
+function renderMailReadPanel() {
+  if (mailSelectedItem < 0) return `<div class="mail-read-empty"><div class="empty-icon">📧</div><div class="empty-text">从左侧选择一封邮件查看详情</div></div>`;
+  const e = currentMailEmails[mailSelectedItem] || currentMailEmails[0];
+  if (!e) return `<div class="mail-read-empty"><div class="empty-icon">📧</div><div class="empty-text">暂无邮件</div></div>`;
+  return `
+    <div class="mail-read-head">
+      <div class="mr-subject">${e[2]}</div>
+      <div class="mail-read-actions">
+        <button class="btn btn-sm" title="回复">↩ 回复</button>
+        <button class="btn btn-sm" title="转发">↪ 转发</button>
+        <button class="btn btn-sm" title="删除" onclick="moveMailToDeleted(${mailSelectedItem})">🗑</button>
+        <button class="btn btn-sm" onclick="alert('已标记为待处理')">标记待处理</button>
+        <button class="btn btn-sm btn-text" onclick="alert('更多操作')">更多 ›</button>
+      </div>
+    </div>
+    <div class="mail-read-meta flex-between">
+      <div class="flex gap-8">
+        <div class="mr-avatar">${e[0][0]}</div>
+        <div>
+          <div class="mr-from">${e[0]} &lt;${e[1]}&gt;</div>
+          <div class="text-sm text-muted">收件人: service@company.com <a class="btn-text btn-sm" onclick="event.stopPropagation();toggleMailDetailInfo(this)">详细信息 ›</a></div>
+          <div class="mail-detail-info hidden">
+            <div class="text-sm text-muted">抄送: --</div>
+            <div class="text-sm text-muted">发送时间: ${e[4]}</div>
+            <div class="text-sm text-muted">当地时间: 暂未查询到该客户的当地时间</div>
+            <div class="text-sm text-muted">邮件大小: 12.4 KB</div>
+          </div>
+        </div>
+      </div>
+      <div class="flex gap-8 items-center">
+        <span class="text-sm text-muted">源语言: 英文</span>
+        <button class="btn btn-sm" onclick="translateMail(this)">翻译邮件</button>
+        <span class="text-sm text-muted">${e[4]}</span>
+      </div>
+    </div>
+    <div class="mail-read-body" id="mailReadBody">
+      <p>Hi,</p>
+      <p>I would like to request your latest product catalog for hair products. We are particularly interested in:</p>
+      <ul style="margin:8px 0;padding-left:20px;list-style:disc"><li>Men's toupee</li><li>Women's wigs</li><li>Hair extensions</li></ul>
+      <p>Please send me the catalog along with your best prices for bulk orders.</p>
+      <p>Best regards,<br>${e[0]}</p>
+    </div>
+    <div class="flex gap-8 mb-16">
+      <button class="btn btn-primary btn-sm" onclick="navigateTo('mail','mail-compose')">快速回复</button>
+      <button class="btn btn-sm" style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none">✨ AI 邮件创作</button>
+    </div>
+    <div class="divider"></div>
+    <div class="card-title">销售助手</div>
+    <div class="mail-sales-assistant">
+      <div class="flex gap-8 mb-8"><span class="table-tag warning">陌生人</span><span class="table-tag">高意向</span></div>
+      <div class="info-list">
+        <div class="info-item"><span class="info-label">联系人邮箱</span><span class="info-value">${e[1]}</span></div>
+        <div class="info-item"><span class="info-label">公司名称</span><span class="info-value">Example Corp</span></div>
+        <div class="info-item"><span class="info-label">公司官网</span><span class="info-value text-primary">example.com</span></div>
+      </div>
+      <div class="mt-12 ai-analysis-box">
+        <span class="ai-badge">OKKI AI</span>
+        <div class="text-sm mt-12">买家真实性验证: <strong class="text-success">高真实性</strong></div>
+        <div class="text-sm">分析结果: 高意向询盘，询盘产品与业务高度匹配，建议优先跟进。</div>
+        <div class="text-xs text-muted mt-12">内容由 AI 生成，仅供参考</div>
+      </div>
+      <div class="flex gap-8 mt-12" style="flex-wrap:wrap">
+        <button class="btn btn-sm" onclick="alert('打开谈单指南')">谈单指南</button>
+        <button class="btn btn-sm" onclick="alert('已对该客户发起背调')">发起背调</button>
+        <button class="btn btn-sm" onclick="alert('建档建议：建议新建客户 Example Corp')">建档建议</button>
+        <button class="btn btn-sm" onclick="alert('物流查价')">物流查价</button>
+        <button class="btn btn-sm" onclick="alert('查看与该邮箱的往来邮件')">往来邮件</button>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="alert alert-warning mail-receipt">
+      已读回执：发件人希望得到您的已读回执，是否发送？
+      <button class="btn btn-sm" onclick="this.closest('.alert').style.display='none'">不发送</button>
+      <button class="btn btn-sm btn-primary" onclick="alert('已读回执已发送');this.closest('.alert').style.display='none'">发送</button>
+    </div>
+  `;
+}
+
+let currentMailEmails = [];
+function selectMailItem(idx) { mailSelectedItem = idx; const p = document.getElementById('mailReadPanel'); if (p) p.innerHTML = renderMailReadPanel(); }
+function translateMail(el) { el.textContent = '已翻译'; const b = document.getElementById('mailReadBody'); if (b) b.style.opacity = '.85'; alert('已翻译为中文（演示）'); }
+function moveMailToDeleted(idx) { alert('邮件已移至已删除'); }
+function toggleMailDetailInfo(el) { const info = el.closest('.mail-read-meta').querySelector('.mail-detail-info'); if (info) info.classList.toggle('hidden'); }
+
+// 通用三栏邮件布局
+function renderMailLayout(pageKey, title, emails, opts = {}) {
+  currentMailEmails = emails;
+  const folderTree = renderMailFolderTree(pageKey);
+  const tabs = renderTabs([
+    {label:'全部'}, {label:'客户'}, {label:'同事'}, {label:'通讯录'}, {label:'其他'}
+  ]);
+  return `
+    <div class="mail-3col">
+      <div class="mail-col-folder">
+        <div class="mail-switch">${['邮件','客户','下属'].map((t,i)=>`<span class="ms-item ${i===0?'active':''}" onclick="switchToggle(this)">${t}</span>`).join('')}</div>
+        <button class="btn btn-primary btn-sm mail-write-btn" onclick="navigateTo('mail','mail-compose')">✉ 写信</button>
+        ${folderTree}
+      </div>
+      <div class="mail-col-list">
+        <div class="mail-list-toolbar flex-between">
+          <div class="flex gap-8 items-center">
+            <input class="filter-input" placeholder="搜索本文件夹邮件" style="height:30px;min-width:120px"/>
+          </div>
+          <div class="flex gap-8">
+            ${opts.extraActions || ''}
+            <button class="btn btn-sm" onclick="openMailAdvancedSearch()">高级搜索</button>
+            <button class="btn btn-sm btn-primary" onclick="navigateTo('mail','mail-compose')">✉ 写信</button>
+          </div>
+        </div>
+        ${tabs}
+        ${opts.banner || '<div class="alert alert-info mb-12">💡 使用 App 即刻处理邮件，随时随地高效办公</div>'}
+        <div class="table-info mb-8">共 ${emails.length} 封</div>
+        <div class="mail-list-group">
+          ${emails.map((e, i) => `
+            <div class="mail-list-row ${i === mailSelectedItem ? 'active' : ''}" onclick="selectMailItem(${i})">
+              <input type="checkbox" class="table-checkbox" onclick="event.stopPropagation()"/>
+              <div class="mlr-from">${e[0]}</div>
+              <div class="mlr-subject">${e[2]}<span class="mlr-snippet text-muted"> — ${e[3].substring(0,24)}…</span></div>
+              <div class="mlr-time">${e[4]}</div>
+              <div class="mlr-tags">${e[5] ? `<span class="table-tag primary">${e[5]}</span>` : ''}${e[6] ? `<span class="table-tag warning">${e[6]}</span>` : ''}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      <div class="mail-col-read" id="mailReadPanel">
+        ${renderMailReadPanel()}
+      </div>
+    </div>
+  `;
+}
+
 PAGE_RENDERERS['mail-inbox'] = () => {
   const emails = [
     ['John Smith', 'john@example.com', 'Re: Product Catalog Request', 'Hi, I would like to request your latest product catalog...', '14:30', '已分发邮件'],
@@ -470,77 +991,94 @@ PAGE_RENDERERS['mail-inbox'] = () => {
     ['Alice Chen', 'alice@partner.cn', 'Meeting Tomorrow', 'Hi, just confirming our meeting tomorrow at 3pm...', '昨天', ''],
     ['Bob Johnson', 'bob@corp.us', 'RFQ: Custom Products', 'We are looking for a supplier of custom...', '昨天', ''],
   ];
-  return `
-    <div class="page-header">
-      <h1 class="page-title">收件箱</h1>
-      <div class="page-actions">
-        <button class="btn">高级搜索</button>
-        <button class="btn btn-primary" onclick="navigateTo('mail','mail-compose')">✉ 写信</button>
-      </div>
-    </div>
-    ${renderTabs([
-      {label:'全部'}, {label:'客户'}, {label:'同事'}, {label:'通讯录'}, {label:'其他'}
-    ])}
-    <div class="alert alert-info mb-12">💡 使用 App 即刻处理邮件，随时随地高效办公</div>
-    <div class="table-info mb-8">共 156 封 / 8 页</div>
-    <div class="text-sm text-muted mb-8" style="font-weight:500">今天</div>
-    ${renderTable(
-      ['发件人','邮箱','主题','摘要','时间','标签'],
-      emails.map(e => [
-        `<span class="table-link" onclick="showMailDetail()">${e[0]}</span>`,
-        `<span class="text-muted">${e[1]}</span>`,
-        `<span class="table-link" onclick="showMailDetail()">${e[2]}</span>`,
-        `<span class="text-muted text-sm">${e[3].substring(0,30)}...</span>`,
-        e[4],
-        e[5] ? `<span class="table-tag primary">${e[5]}</span>` : ''
-      ]),
-      { checkbox: true, total: 156 }
-    )}
-  `;
+  return renderMailLayout('mail-inbox', '收件箱', emails);
 };
 
-PAGE_RENDERERS['mail-compose'] = () => `
+PAGE_RENDERERS['mail-compose'] = () => {
+  const composeTo = window.composeTo || '';
+  window.composeTo = '';
+  return `
   <div class="page-header">
     <h1 class="page-title">写邮件</h1>
     <div class="page-actions">
-      <button class="btn btn-primary">发送</button>
-      <button class="btn">存草稿</button>
-      <button class="btn">预览</button>
-      <button class="btn">提交审批</button>
+      <button class="btn btn-primary" onclick="sendMail()">发送</button>
+      <button class="btn" onclick="saveMailDraft()">存草稿</button>
+      <button class="btn" onclick="previewMail()">预览</button>
+      <button class="btn" onclick="submitMailApproval()">提交审批</button>
       <button class="btn" onclick="navigateTo('mail','mail-inbox')">取消</button>
     </div>
   </div>
-  <div class="card">
+  <div class="card mail-compose">
     ${renderFormField('发件人', 'select', {options:['service@company.com','sales@company.com']})}
-    ${renderFormField('收件人', 'text', {placeholder:'输入收件人邮箱'})}
-    <div class="flex gap-8 mb-8"><a class="btn-text btn-sm">+ 抄送</a><a class="btn-text btn-sm">+ 密送</a><a class="btn-text btn-sm">群发单显</a></div>
+    ${renderFormField('收件人', 'text', {placeholder:'输入收件人邮箱，多个用分号分隔', value: composeTo})}
+    <div class="flex gap-8 mb-8" id="mailCcBcc">
+      <a class="btn-text btn-sm" onclick="toggleMailField('cc',this)">+ 抄送</a>
+      <a class="btn-text btn-sm" onclick="toggleMailField('bcc',this)">+ 密送</a>
+      <a class="btn-text btn-sm" onclick="alert('已开启群发单显')">群发单显</a>
+    </div>
+    <div class="mail-cc-row hidden" id="mailCcRow">${renderFormField('抄送','text',{placeholder:'输入抄送邮箱'})}</div>
+    <div class="mail-cc-row hidden" id="mailBccRow">${renderFormField('密送','text',{placeholder:'输入密送邮箱'})}</div>
     ${renderFormField('主题', 'text', {placeholder:'邮件主题'})}
     <div class="flex-between mb-8">
-      <button class="btn btn-sm" style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none">✨ AI 邮件创作</button>
+      <button class="btn btn-sm" style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none" onclick="alert('✨ AI 正在生成邮件内容…')">✨ AI 邮件创作</button>
     </div>
     <div style="border:1px solid var(--border);border-radius:var(--radius);min-height:300px;padding:12px">
       <div style="border-bottom:1px solid var(--border-light);padding-bottom:8px;margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap">
-        ${['B','I','U','S','左','中','右','H1','H2','列表','表格','链接','😀'].map(b => `<button class="btn btn-sm btn-icon" style="min-width:28px;height:28px;padding:2px">${b}</button>`).join('')}
+        ${['B','I','U','S','左','中','右','H1','H2','列表','表格','链接','😀'].map(b => `<button class="btn btn-sm btn-icon" style="min-width:28px;height:28px;padding:2px" onclick="alert('富文本操作：${b}')">${b}</button>`).join('')}
       </div>
       <div contenteditable="true" style="min-height:200px;outline:none;color:var(--text-muted)">在此输入邮件正文...</div>
     </div>
     <div class="flex gap-8 mt-12" style="flex-wrap:wrap">
-      ${['附件','云文档','模板','图片','快速文本','产品','单据','收款'].map(b => `<button class="btn btn-sm">${b}</button>`).join('')}
+      <button class="btn btn-sm" onclick="openMailInsertDialog('附件')">📎 附件</button>
+      <button class="btn btn-sm" onclick="openMailInsertDialog('云文档')">云文档</button>
+      <button class="btn btn-sm" onclick="openMailInsertDialog('模板')">模板</button>
+      <button class="btn btn-sm" onclick="openMailInsertDialog('图片')">图片</button>
+      <button class="btn btn-sm" onclick="openMailInsertDialog('快速文本')">快速文本</button>
+      <button class="btn btn-sm" onclick="openMailInsertDialog('产品')">产品</button>
+      <button class="btn btn-sm" onclick="openMailInsertDialog('单据')">单据</button>
+      <button class="btn btn-sm" onclick="openMailInsertDialog('收款')">收款</button>
     </div>
     <div class="divider"></div>
+    <div class="form-group"><label class="form-label">签名</label>
+      <select class="form-select"><option>默认签名</option><option>销售-英文签名</option><option>客服签名</option><option>不使用签名</option></select>
+    </div>
+    <div class="form-group"><label class="form-label">备注</label>
+      <textarea class="form-textarea" placeholder="为本邮件添加备注（仅自己可见）"></textarea>
+    </div>
     <div class="flex gap-16" style="font-size:12px;color:var(--text-secondary)">
       <span>邮件大小: 0KB</span>
-      <span>签名: 默认签名</span>
     </div>
-    <div class="flex gap-12 mt-12">
-      <label class="form-switch"><input type="checkbox" /> 紧急</label>
+    <div class="flex gap-12 mt-12" style="flex-wrap:wrap">
+      <label class="form-switch"><input type="checkbox" onchange="alert('紧急邮件将标记优先')" /> 紧急</label>
       <label class="form-switch"><input type="checkbox" /> 回执</label>
-      <label class="form-switch"><input type="checkbox" /> 追踪邮件</label>
-      <label class="form-switch"><input type="checkbox" /> 定时发送</label>
+      <label class="form-switch"><input type="checkbox" checked /> 追踪邮件</label>
+      <label class="form-switch"><input type="checkbox" onchange="alert('开启定时发送配置')" /> 定时发送</label>
       <label class="form-switch"><input type="checkbox" /> 标记为待处理</label>
     </div>
   </div>
-`;
+`;};
+
+function toggleMailField(type, el) {
+  const row = document.getElementById(type === 'cc' ? 'mailCcRow' : 'mailBccRow');
+  if (row.classList.contains('hidden')) { row.classList.remove('hidden'); el.textContent = el.textContent.replace('+','-'); }
+  else { row.classList.add('hidden'); el.textContent = el.textContent.replace('-','+'); }
+}
+function sendMail() { openModal('发送确认','邮件将立即发送给收件人，是否继续？','<button class="btn" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="closeModal();navigateTo(\'mail\',\'mail-sent\')">发送</button>'); }
+function saveMailDraft() { alert('草稿已保存'); navigateTo('mail','mail-draft'); }
+function previewMail() { openModal('邮件预览','<div style="border:1px solid var(--border-light);border-radius:var(--radius);padding:16px;min-height:200px"><strong>主题：</strong>（待填写）<br/><br/>邮件正文预览…</div>','<button class="btn" onclick="closeModal()">关闭</button>'); }
+function submitMailApproval() { openModal('提交审批','填写审批信息后由审批人审核通过再发送。','<div class="form-group"><label class="form-label">审批人</label><select class="form-select"><option>张伟（主管）</option><option>李娜（主管）</option></select></div><div class="form-group"><label class="form-label">审批说明</label><textarea class="form-textarea" placeholder="说明邮件背景"></textarea></div><button class="btn" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="closeModal();alert(\'已提交审批\')">提交</button>'); }
+function openMailInsertDialog(type) {
+  if (type === '附件') { openModal('添加附件','<div class="upload-area">📎 点击或拖拽文件到此处上传</div><div class="text-sm text-muted mt-12">支持图片、文档、压缩包，单个文件最大 50MB</div>','<button class="btn" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="closeModal();alert(\'附件已添加\')">确定</button>'); return; }
+  let body = '';
+  if (type === '模板') body = '<div class="form-group"><select class="form-select"><option>询盘回复模板</option><option>报价跟进模板</option><option>新品推荐模板</option><option>售后回访模板</option></select></div><div class="text-sm text-muted">选中模板后内容将插入正文。</div>';
+  else if (type === '快速文本') body = '<div class="grid-2">'+['问候-英文','感谢-英文','催付款-英文','催样确认','质量管理'].map(t=>`<div class="tp-faq" onclick="closeModal();alert('已插入：'+t)">${t}</div>`).join('')+'</div>';
+  else if (type === '云文档') body = '<div class="form-group"><input class="form-input" placeholder="搜索云盘文档"/></div><div class="text-sm text-muted">选择需插入的云文档，以链接形式附在正文。</div>';
+  else if (type === '图片') body = '<div class="upload-area">📷 点击或拖拽图片上传</div>';
+  else if (type === '产品') body = '<div class="form-group"><input class="form-input" placeholder="搜索产品"/></div><div class="text-sm text-muted">选择产品后将插入产品卡片（含图片、型号、价格）。</div>';
+  else if (type === '单据') body = '<div class="flex gap-12">'+['销售订单','报价单','回款单','采购单'].map(t=>`<label class="form-switch"><input type="checkbox"/> ${t}</label>`).join('')+'</div><div class="text-sm text-muted mt-12">勾选后将单据信息插入正文中。</div>';
+  else if (type === '收款') body = '<div class="form-group"><label class="form-label">关联订单</label><select class="form-select"><option>SO-20260623-001</option><option>SO-20260620-003</option></select></div><div class="text-sm text-muted">将收款信息链接插入正文，便于客户付款。</div>';
+  openModal('插入' + type, '<div>' + body + '</div>', '<button class="btn" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="closeModal();alert(\'' + type + '已插入邮件\')">确定</button>');
+}
 
 // Mail detail view
 function showMailDetail() {
@@ -600,28 +1138,15 @@ function showMailDetail() {
 // Mail sub-pages with mock data
 PAGE_RENDERERS['mail-pending'] = () => {
   const emails = [
-    ['Sarah Lee','sarah@buyer.com','Order Confirmation #12345','Thank you for your order. Please find attached the confirmation...','今天 11:20','待回复'],
-    ['Bob Johnson','bob@corp.us','RFQ: Custom Products','We are looking for a supplier of custom hair products...','昨天 15:30','待回复'],
-    ['Alice Chen','alice@partner.cn','Partnership Proposal','We would like to propose a strategic partnership...','昨天 09:00','待跟进'],
-    ['Mike Wilson','mike@trade.co','Urgent: Shipping Delay','There has been a delay in the shipment. The new ETA is...','06-19','待处理'],
+    ['Sarah Lee','sarah@buyer.com','Order Confirmation #12345','Thank you for your order. Please find attached the confirmation...','今天 11:20','','待回复'],
+    ['Bob Johnson','bob@corp.us','RFQ: Custom Products','We are looking for a supplier of custom hair products...','昨天 15:30','','待回复'],
+    ['Alice Chen','alice@partner.cn','Partnership Proposal','We would like to propose a strategic partnership...','昨天 09:00','','待跟进'],
+    ['Mike Wilson','mike@trade.co','Urgent: Shipping Delay','There has been a delay in the shipment. The new ETA is...','06-19','','待处理'],
   ];
-  return `
-    <div class="page-header"><h1 class="page-title">待处理邮件</h1><div class="page-actions"><button class="btn" onclick="markAllProcessed()">全部标记已处理</button><button class="btn btn-primary" onclick="navigateTo('mail','mail-compose')">✉ 写信</button></div></div>
-    <div class="alert alert-warning mb-12">📌 您有 ${emails.length} 封邮件待处理</div>
-    ${renderTable(
-      ['发件人','邮箱','主题','摘要','时间','状态','操作'],
-      emails.map(e => [
-        '<span class="table-link" onclick="showMailDetail()">' + e[0] + '</span>',
-        '<span class="text-muted">' + e[1] + '</span>',
-        '<span class="table-link" onclick="showMailDetail()">' + e[2] + '</span>',
-        '<span class="text-muted text-sm">' + e[3].substring(0,35) + '...</span>',
-        e[4],
-        '<span class="table-tag warning">' + e[5] + '</span>',
-        '<button class="btn btn-sm btn-primary" onclick="showMailDetail()">处理</button> <button class="btn btn-sm" onclick="ignoreMail(this)">忽略</button>'
-      ]),
-      { checkbox: true, total: emails.length }
-    )}
-  `;
+  return renderMailLayout('mail-pending', '待处理邮件', emails, {
+    banner: `<div class="alert alert-warning mb-12">📌 您有 ${emails.length} 封邮件待处理</div>`,
+    extraActions: `<button class="btn btn-sm" onclick="markAllProcessed()">全部标记已处理</button>`
+  });
 };
 
 function markAllProcessed() {
@@ -638,22 +1163,9 @@ PAGE_RENDERERS['mail-unread'] = () => {
     ['Maria Garcia','maria@salon.es','Sample Request','Could you please send us samples of your premium line...','昨天 18:20',''],
     ['Ahmed Khan','ahmed@trade.pk','Re: MOQ and Pricing','Your MOQ seems high for our market. Can we discuss...','昨天 11:15',''],
   ];
-  return `
-    <div class="page-header"><h1 class="page-title">未读邮件</h1><div class="page-actions"><button class="btn">全部标记已读</button><button class="btn btn-primary" onclick="navigateTo('mail','mail-compose')">✉ 写信</button></div></div>
-    <div class="table-info mb-8">共 ${emails.length} 封未读邮件</div>
-    ${renderTable(
-      ['发件人','邮箱','主题','摘要','时间','操作'],
-      emails.map(e => [
-        '<span class="table-link" onclick="showMailDetail()"><strong>' + e[0] + '</strong></span>',
-        '<span class="text-muted">' + e[1] + '</span>',
-        '<span class="table-link" onclick="showMailDetail()"><strong>' + e[2] + '</strong></span>',
-        '<span class="text-muted text-sm">' + e[3].substring(0,35) + '...</span>',
-        e[4],
-        '<button class="btn btn-sm" onclick="showMailDetail()">查看</button>'
-      ]),
-      { checkbox: true, total: emails.length }
-    )}
-  `;
+  return renderMailLayout('mail-unread', '未读邮件', emails, {
+    extraActions: `<button class="btn btn-sm" onclick="alert('已将全部未读邮件标记为已读')">全部标记已读</button>`
+  });
 };
 
 PAGE_RENDERERS['mail-draft'] = () => {
@@ -932,39 +1444,102 @@ function pickTagColor(el) {
 
 // ===== 3. Communication / 沟通模块 =====
 PAGE_RENDERERS['communication'] = () => renderCommunicationPage();
-Object.keys(SUBMENUS).includes('communication') || (PAGE_RENDERERS['communication'] = renderCommunicationPage);
+let commActiveChannel = 'WhatsApp 企业版'; // WhatsApp企业版(带空格,与spec一致)
+function switchCommChannel(label) { commActiveChannel = label; renderContent(); }
 
 function renderCommunicationPage() {
+  const channels = ['WhatsApp 企业版','Facebook聊天','Instagram','网站聊天','TM','WhatsApp'];
+  const tabs = `<div class="tabs">${channels.map((c,i)=>`<div class="tab-item ${c===commActiveChannel?'active':''}" onclick="switchCommChannel('${c}')">${c}</div>`).join('')}</div>`;
+  const ops = `<div class="flex gap-8 mb-16">
+      <button class="btn" onclick="alert('查看沟通/营销相关数据')">营销数据</button>
+      <button class="btn" onclick="alert('管理社媒账号连接')">社媒管理</button>
+      <button class="btn" onclick="alert('查看渠道使用指南')">使用指南</button>
+      <button class="btn btn-primary" onclick="alert('新建会话')">+ 新建会话</button>
+    </div>`;
+  // WhatsApp 企业版：未配置 → 引导卡（与 spec 4.1.2 一致）
+  if (commActiveChannel === 'WhatsApp 企业版') {
+    return `
+      <div class="page-header"><h1 class="page-title">沟通</h1></div>
+      ${tabs}
+      ${ops}
+      <div class="card">
+        <div style="text-align:center;padding:20px 40px">
+          <div style="font-size:32px;margin-bottom:16px">📱</div>
+          <h2 style="margin-bottom:8px">WhatsApp 官方群发</h2>
+          <p class="text-muted mb-24">一键触达全球海量客户</p>
+          <div class="grid-4 mb-24" style="max-width:760px;margin:0 auto;gap:16px;text-align:left">
+            ${['批量营销信息','官方群发通道','企业账号统一管理','营销模板统一创建'].map(c => `<div class="comm-cap"><span class="cc-badge">✓</span>${c}</div>`).join('')}
+          </div>
+          <div class="grid-3" style="max-width:680px;margin:0 auto;gap:24px;text-align:left">
+            <div class="card comm-step">
+              <div class="cs-num">Step 1</div>
+              <div class="cs-title">准备可用的 Facebook 账号和手机号</div>
+              <div class="text-sm text-muted">用于绑定 WABA 企业账号。</div>
+            </div>
+            <div class="card comm-step comm-step-active">
+              <div class="cs-num">Step 2</div>
+              <div class="cs-title">授权绑定 WABA 账号</div>
+              <div class="text-sm text-muted">预计耗时 5 分钟</div>
+              <div class="text-sm text-muted">输入 Facebook 账号并连接 OKKI 账号</div>
+              <div class="flex gap-8 mt-12">
+                <a class="btn-text text-sm" onclick="alert('打开操作指南')">查看操作指南</a>
+                <button class="btn btn-primary btn-sm" onclick="alert('开始创建 WABA 账号…')">立即创建</button>
+              </div>
+            </div>
+            <div class="card comm-step">
+              <div class="cs-num">Step 3</div>
+              <div class="cs-title">等待官方审核</div>
+              <div class="text-sm text-muted">通过后即可使用 WABA 与买家洽谈业务。</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  // 其它频道：会话列表 + 聊天消息面板
+  const convos = [
+    { name: 'John Smith', preview: 'Hi, I would like to know more about...', time: '14:30', unread: 2, channel: 'whatsapp' },
+    { name: 'Sarah Lee', preview: 'Thanks for the quotation!', time: '12:10', unread: 0, channel: 'facebook' },
+    { name: 'Mike Wilson', preview: 'Order confirmed, shipping tomorrow', time: '昨天', unread: 1, channel: 'whatsapp' },
+    { name: 'Lisa Wang', preview: 'Photo', time: '昨天', unread: 0, channel: 'instagram' },
+    { name: 'Hans Mueller', preview: 'Guten Tag, wir interessieren uns...', time: '06-19', unread: 3, channel: 'whatsapp' },
+  ];
+  const msgs = [
+    { from: 'them', text: 'Hi, I saw your products on the website, very interested!', time: '14:20' },
+    { from: 'me', text: 'Hi John! Nice to hear from you. Which product line are you interested in?', time: '14:22' },
+    { from: 'them', text: 'Mainly the hair extensions, could you send the catalog?', time: '14:25' },
+    { from: 'me', text: 'Sure, I will send you the latest catalog right away. Please check your email.', time: '14:28' },
+    { from: 'them', text: 'Hi, I would like to know more about...', time: '14:30' },
+  ];
   return `
     <div class="page-header"><h1 class="page-title">沟通</h1></div>
-    ${renderTabs([
-      {label:'WhatsApp企业版'}, {label:'Facebook聊天'}, {label:'Instagram'}, {label:'网站聊天'}, {label:'TM'}, {label:'WhatsApp'}
-    ])}
-    <div class="flex gap-8 mb-16">
-      <button class="btn">营销数据</button>
-      <button class="btn">社媒管理</button>
-      <button class="btn">使用指南</button>
-    </div>
-    <div class="card">
-      <div style="text-align:center;padding:40px">
-        <div style="font-size:32px;margin-bottom:16px">📱</div>
-        <h2 style="margin-bottom:8px">WhatsApp 官方群发</h2>
-        <p class="text-muted mb-16">一键触达全球海量客户 · 批量营销信息 · 官方群发通道 · 企业账号统一管理</p>
-        <div class="grid-3" style="max-width:600px;margin:0 auto;gap:24px">
-          <div class="card" style="border:1px solid var(--border-light)">
-            <div class="text-primary text-bold mb-8">Step 1</div>
-            <div class="text-sm">准备可用的 Facebook 账号和手机号</div>
+    ${tabs}
+    ${ops}
+    <div class="card comm-2col">
+      <div class="comm-convolist">
+        <input class="filter-input comm-search" placeholder="搜索会话" />
+        ${convos.map((c, i) => `
+          <div class="comm-convo ${i === 0 ? 'active' : ''}">
+            <div class="cc-avatar">${c.name[0]}</div>
+            <div class="cc-main">
+              <div class="flex-between"><div class="cc-name">${c.name}</div><div class="cc-time">${c.time}</div></div>
+              <div class="flex-between"><div class="cc-preview">${c.preview}</div>${c.unread ? `<span class="cc-unread">${c.unread}</span>` : ''}</div>
+            </div>
           </div>
-          <div class="card" style="border:1px solid var(--border-light)">
-            <div class="text-primary text-bold mb-8">Step 2</div>
-            <div class="text-sm">授权绑定 WABA 账号<br><span class="text-muted">预计耗时 5 分钟</span></div>
-            <div class="mt-12"><a class="text-primary text-sm">查看操作指南</a></div>
-            <button class="btn btn-primary btn-sm mt-12">立即创建</button>
-          </div>
-          <div class="card" style="border:1px solid var(--border-light)">
-            <div class="text-primary text-bold mb-8">Step 3</div>
-            <div class="text-sm">等待官方审核，通过后即可使用</div>
-          </div>
+        `).join('')}
+      </div>
+      <div class="comm-chatpanel">
+        <div class="comm-chathead">
+          <div class="flex gap-8 items-center"><div class="cc-avatar">J</div><div><div class="cc-name">John Smith</div><div class="text-xs text-muted">在线 · WhatsApp</div></div></div>
+          <div class="flex gap-8"><button class="btn btn-sm" onclick="alert('查看客户资料')">客户资料</button><button class="btn btn-sm" onclick="alert('查看往来邮件')">往来邮件</button><button class="btn btn-sm" onclick="alert('更多')">⋯</button></div>
+        </div>
+        <div class="comm-msglist">
+          ${msgs.map(m => `<div class="comm-msg ${m.from === 'me' ? 'me' : 'them'}"><div class="cm-bubble">${m.text}</div><div class="cm-time">${m.time}</div></div>`).join('')}
+        </div>
+        <div class="comm-inputbar">
+          <div class="flex gap-8 mb-8"><button class="btn btn-sm">📎</button><button class="btn btn-sm">😀</button><button class="btn btn-sm" onclick="alert('发送模板消息')">模板</button><button class="btn btn-sm" onclick="alert('快速回复')">快速回复</button></div>
+          <textarea class="form-textarea comm-input" placeholder="输入消息，回车发送"></textarea>
+          <div class="flex-between mt-8"><span class="text-xs text-muted">Enter 发送 / Shift+Enter 换行</span><button class="btn btn-primary btn-sm" onclick="alert('消息已发送')">发送</button></div>
         </div>
       </div>
     </div>
@@ -983,9 +1558,16 @@ PAGE_RENDERERS['leads-list'] = () => {
   return `
     <div class="page-header">
       <h1 class="page-title">线索列表</h1>
-      <div class="toggle-group"><button class="toggle-btn active" onclick="switchToggle(this)">我的线索</button><button class="toggle-btn" onclick="switchToggle(this)">团队线索</button></div>
+      <div class="flex gap-8 items-center">
+        <select class="filter-select" style="width:130px" onchange="switchToggle(this.previousElementSibling)">
+          <option>我的视角</option><option>团队视角</option><option>全部视角</option>
+        </select>
+        <div class="toggle-group"><button class="toggle-btn active" onclick="switchToggle(this)">我的线索</button><button class="toggle-btn" onclick="switchToggle(this)">团队线索</button></div>
+      </div>
       <div class="page-actions">
         <button class="btn btn-sm" style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none" onclick="openAILeadAssistant()">🤖 AI 数据助理</button>
+        <button class="btn btn-sm" onclick="openLeadImportExportDialog()">⇅ 导入导出</button>
+        <button class="btn btn-sm" onclick="openLeadFilterDrawer()">MASConstraintMaker 筛选</button>
         <button class="btn btn-primary" onclick="openNewLeadDrawer()">+ 新建线索</button>
         <button class="btn btn-sm btn-icon" onclick="openLeadSettingsModal()">⚙</button>
       </div>
@@ -1009,16 +1591,18 @@ PAGE_RENDERERS['leads-list'] = () => {
         <div class="tree-item tree-indent" onclick="filterLeadTree(this,'阿里询盘',20)">阿里询盘 <span class="count">20</span></div>
       </div>
       <div class="right-content" style="padding:0 16px">
+        <div class="bulk-toolbar" id="leadBulkBar">${renderLeadBulkBar()}</div>
         <div class="flex-between mb-12">
           <span class="table-info">共 128 条线索</span>
-          <div class="flex gap-8">
+          <div class="flex gap-8 items-center">
             <button class="btn btn-sm text-primary" onclick="navigateTo('leads','leads-incubation')">查看孵化建议</button>
             <span class="text-sm text-muted">最近联系时间</span>
-            <select class="filter-select" style="width:120px"><option>最近 7 天内</option><option>最近 30 天内</option><option>未联系</option></select>
+            <select class="filter-select" style="width:120px" onchange="alert('筛选：'+this.value)"><option>最近 7 天内</option><option>最近 30 天内</option><option>未联系</option></select>
+            <button class="btn btn-sm btn-text" onclick="alert('列设置')">列设置 ⚙</button>
           </div>
         </div>
         ${renderTable(
-          ['线索名称','邮箱','线索状态','系统标签','访问来源','来源方式','线索来源','创建时间','操作'],
+          ['线索名称','邮箱','线索状态','系统标签','访问来源','来源方式','线索来源',`创建时间 <span class="sort-arrow" onclick="alert('切换创建时间排序')" title="排序">⇅</span>`,'操作'],
           leads.map(l => [
             `<span class="table-link" onclick="navigateTo('leads','leads-detail')">${l[0]}</span>`,
             l[1],
@@ -1033,6 +1617,34 @@ PAGE_RENDERERS['leads-list'] = () => {
     </div>
   `;
 };
+
+function renderLeadBulkBar() {
+  return `<div class="flex gap-8 items-center"><span class="text-sm">已选 <strong id="leadSelectedCount">0</strong> 条</span>
+    <button class="btn btn-sm" onclick="alert('批量分配所选线索')">分配</button>
+    <button class="btn btn-sm" onclick="alert('批量添加标签')">加标签</button>
+    <button class="btn btn-sm" onclick="alert('批量转化为客户')">转为客户</button>
+    <button class="btn btn-sm" onclick="alert('批量放入公海')">放入公海</button>
+    <button class="btn btn-sm btn-text" style="color:var(--danger)" onclick="alert('批量删除所选线索')">删除</button>
+    <span class="text-sm text-muted">勾选线索后可批量操作</span></div>`;
+}
+function openLeadImportExportDialog() {
+  openModal('线索导入 / 导出','<div class="grid-2"><div class="upload-area">📥 导入线索（Excel/CSV）</div><div class="upload-area" style="border-style:solid">📤 导出当前线索</div></div><div class="mt-12"><div class="text-sm text-muted">支持 Excel、CSV 格式，可导入前预览与去重。</div></div><div class="dt-steps mt-12"></div>','<button class="btn" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="closeModal();alert(\'已开始导入\')">开始导入</button>');
+}
+function openLeadFilterDrawer() {
+  openDrawer('线索筛选', `
+    <div class="form-group"><label class="form-label">关键词</label><input class="form-input" placeholder="线索名称/邮箱/公司"/></div>
+    <div class="grid-2">
+      ${renderFormField('线索状态','select',{options:['不限','待处理','完善信息','初步触达','联系互动']})}
+      ${renderFormField('系统标签','select',{options:['不限','高意向','新询盘','活跃客户']})}
+      ${renderFormField('线索来源','select',{options:['不限','主动开发','个人询盘','TM 咨询','阿里询盘','社媒','展会']})}
+      ${renderFormField('最近联系','select',{options:['不限','7天内','30天内','未联系']})}
+      ${renderFormField('创建开始','date',{})}
+      ${renderFormField('创建结束','date',{})}
+    </div>
+    <div class="form-group"><label class="form-label">负责人</label><select class="form-select"><option>不限</option><option>我</option><option>张伟</option><option>李娜</option></select></div>
+  `, '<button class="btn" onclick="closeDrawer()">取消</button><button class="btn btn-danger" onclick="resetLeadFilter()" style="margin-right:auto">重置</button><button class="btn btn-primary" onclick="closeDrawer();alert(\'筛选已应用\')">确定</button>');
+}
+function resetLeadFilter() { closeDrawer(); }
 
 // New Lead Drawer
 function openNewLeadDrawer() {
@@ -1089,12 +1701,13 @@ PAGE_RENDERERS['leads-detail'] = () => {
     <div class="follow-up-input" onclick="expandFollowUp(this)">点击这里记录跟进细节，同步最新进展。</div>
     <div class="flex gap-12 mb-12">
       <div class="toggle-group">
-        <button class="toggle-btn active" onclick="switchToggle(this);document.getElementById('lead_dyn_wrap').style.display='';">历史动态</button>
-        <button class="toggle-btn" onclick="switchToggle(this);document.getElementById('lead_dyn_wrap').innerHTML='<div class=\\'card\\' style=\\'padding:40px;text-align:center\\'>AI 聊天旅程：暂无数据</div>';">AI 聊天旅程</button>
-        <button class="toggle-btn" onclick="switchToggle(this);document.getElementById('lead_dyn_wrap').innerHTML='<div class=\\'card\\' style=\\'padding:40px;text-align:center\\'>AI 谈单卡点：暂无卡点</div>';">AI 谈单卡点 (0)</button>
+        <button class="toggle-btn active" onclick="switchLeadDynView(this,'hist')">历史动态</button>
+        <button class="toggle-btn" onclick="switchLeadDynView(this,'chat')">AI 聊天旅程</button>
+        <button class="toggle-btn" onclick="switchLeadDynView(this,'stuck')">AI 谈单卡点 (0)</button>
       </div>
     </div>
     <div id="lead_dyn_wrap">
+      <div id="lead_dyn_hist">
       ${renderTabs([{label:'全部',count:5},{label:'询盘',count:1},{label:'网站行为',count:1},{label:'跟进记录',count:1},{label:'往来邮件',count:2}], 0, dynFilter)}
       ${renderTabPanels(dynFilter, [
         timelineAll,
@@ -1103,40 +1716,100 @@ PAGE_RENDERERS['leads-detail'] = () => {
         '<div class="timeline"><div class="timeline-item"><div class="tl-time">2026-06-18 16:45</div><div class="tl-title">快速记录</div><div class="tl-desc">初次联系，客户对产品感兴趣，需要报价单</div></div></div>',
         '<div class="timeline"><div class="timeline-item"><div class="tl-time">2026-06-20 14:30</div><div class="tl-title">收到邮件</div><div class="tl-desc">info@wilson.com → service@company.com</div></div><div class="timeline-item"><div class="tl-time">2026-06-19 10:00</div><div class="tl-title">发送邮件</div><div class="tl-desc">service@company.com → info@wilson.com</div></div></div>'
       ])}
+      </div>
+      <div id="lead_dyn_chat" style="display:none"><div class="card" style="padding:40px;text-align:center;color:var(--text-muted)">AI 聊天旅程：暂无数据</div></div>
+      <div id="lead_dyn_stuck" style="display:none"><div class="card" style="padding:40px;text-align:center;color:var(--text-muted)">AI 谈单卡点：暂无卡点</div></div>
     </div>`;
 
   const panelProfile = `
     <div class="card">
-      <div class="form-section-title">基本信息</div>
+      <div class="form-section-title">常用信息</div>
       <div class="grid-2">
         ${renderDetailFields([
-          ['线索名称','Wilson Corp'],['公司名称','Wilson Corporation'],['公司网址','wilson.com'],['国家地区','美国'],
-          ['线索来源','个人询盘'],['来源方式','网站--直接访问'],['线索状态','初步触达'],['线索评分','⭐⭐⭐'],
-          ['跟进人','当前用户'],['编号','L20260001'],['创建时间','2026-06-17 09:00'],['更新时间','2026-06-20 14:30'],
+          ['线索名称','Wilson Corp'],['线索编号','L20260001'],['公司名称','Wilson Corporation'],['公司网址','wilson.com'],
+          ['线索状态','初步触达'],['线索来源','个人询盘'],['访问来源','网站--直接访问'],['国家地区','美国'],
+          ['联系地址','New York, USA'],['客户类型','潜在客户'],['系统标签','高意向'],
+        ])}
+      </div>
+      <div class="divider"></div>
+      <div class="form-section-title">其他信息</div>
+      <div class="grid-2">
+        ${renderDetailFields([
+          ['线索备注','客户对价格敏感，需重点跟进'],['客户实际采购规模','USD 50万/年'],['客户现阶段采购规模','USD 8万/季'],
+          ['采购频次/周期','每季度一次'],['产品特殊偏好','真人发材质，长度 18-24 寸'],['有无客诉','无'],
+          ['AI等级评分','B'],['开发策略','重点开发'],['调研报告','已生成'],['性格标签','决策谨慎型'],
+          ['跟进频率','每周一次'],['客户价值等级','A'],['当前处理中订单','0'],['遗留问题/未兑现承诺','样品未寄出'],
+          ['交接建议','交接时附上历史报价'],['最近询盘时间','2026-06-20'],['主力采购产品','假发配件'],['客户主要联系方式','邮件'],
+          ['最佳联系时间','北京时间 21:00-23:00'],['网站EDM','已订阅'],['WhatsApp广播','未开通'],['配送方式','海运'],
+          ['营销邮件','已发送 3 封'],['付款方式','T/T'],['二次开发成交时间','—'],['首次成交时间','—'],['首次询盘时间','2026-06-17'],
+          ['需求痛点','寻找稳定供应商，要求小批量起订'],['客户目前供应商','越南供应商'],['经营模式','贸易商'],['客户月采购量','5000 顶'],
+          ['客户等级','B'],['广告UTM','utm_source=google'],
+        ])}
+      </div>
+      <div class="divider"></div>
+      <div class="form-section-title">跟进信息</div>
+      <div class="grid-2">
+        ${renderDetailFields([
+          ['首次跟进时间','2026-06-17 09:30'],['最近联系时间','2026-06-20 14:30'],['最近发EDM时间','2026-06-19 10:00'],
+          ['未联系天数','1'],['最近进入私海时间','2026-06-17 09:00'],['最近进入公海时间','—'],
+        ])}
+      </div>
+      <div class="divider"></div>
+      <div class="form-section-title">系统信息</div>
+      <div class="grid-2">
+        ${renderDetailFields([
+          ['创建方式','网站表单自动创建'],['创建时间','2026-06-17 09:00'],['资料更新时间','2026-06-20 14:30'],
+          ['最近修改人','当前用户'],['创建人','系统'],
         ])}
       </div>
     </div>`;
 
   const panelBg = `
     <div class="card mb-12">
-      <div class="card-title">客户背景 <span class="ai-badge">AI</span></div>
-      <div class="alert alert-info mb-12">💡 AI 自动收集公开信息，帮助你快速了解客户</div>
+      <div class="card-title">公司/客户背景摘要 <span class="ai-badge">AI</span></div>
+      <div class="text-sm">Wilson Corporation 是一家位于美国纽约的假发贸易商，主营真人发制品，年采购规模约 USD 50 万，下游覆盖北美零售渠道。客户对供应商稳定性与小批量起订能力较为看重。</div>
+    </div>
+    <div class="card mb-12">
+      <div class="card-title">业务需求</div>
+      ${renderDetailFields([['主营需求','真人发假发配件，长度 18-24 寸'],['采购偏好','小批量多批次起订'],['潜在机会','可拓展为长期供货合作']])}
+    </div>
+    <div class="card mb-12">
+      <div class="card-title">采购画像</div>
       <div class="grid-2">
-        ${renderDetailFields([
-          ['公司全称','Wilson Corporation'],['行业','贸易/进出口'],['地区','New York, USA'],
-          ['公司规模','50-200人'],['成立时间','2010'],['官网','wilson.com'],
-        ])}
+        ${renderDetailFields([['采购规模','USD 50万/年'],['采购频次','季度'],['付款方式','T/T'],['配送方式','海运到洛杉矶']])}
       </div>
-      <div class="mt-12"><button class="btn btn-sm btn-primary" onclick="openBackgroundCheckModal()">发起背调</button></div>
+    </div>
+    <div class="card mb-12">
+      <div class="card-title">关键联系人信息</div>
+      <div class="contact-card">
+        <div class="contact-name">Wilson <span class="contact-tag">主</span></div>
+        <div class="contact-info"><span>✉ info@wilson.com</span><span>♂ 男</span><span>决策人</span></div>
+      </div>
+    </div>
+    <div class="card mb-12">
+      <div class="card-title">风险/备注</div>
+      <div class="alert alert-info">⚠ 客户当前有越南供应商，价格竞争激烈；建议以小批量快速交付和样品优势切入。</div>
+      <div class="mt-12"><button class="btn btn-sm btn-primary" onclick="openBackgroundCheckModal()">发起背调</button> <button class="btn btn-sm">刷新背景</button></div>
     </div>`;
 
   const panelHistory = `
     <div class="card">
       <div class="card-title">操作历史</div>
-      <div class="timeline">
-        <div class="timeline-item"><div class="tl-time">2026-06-20 14:30</div><div class="tl-title">收到邮件</div><div class="tl-desc">info@wilson.com 发送邮件</div></div>
-        <div class="timeline-item"><div class="tl-time">2026-06-18 16:45</div><div class="tl-title">修改线索状态</div><div class="tl-desc">待处理 → 初步触达</div></div>
-        <div class="timeline-item"><div class="tl-time">2026-06-17 09:00</div><div class="tl-title">新建线索</div><div class="tl-desc">系统自动创建线索，来源: 网站表单</div></div>
+      <div class="filter-bar mb-12">
+        <select class="filter-select"><option>全部操作类型</option><option>状态变更</option><option>字段修改</option><option>跟进人变更</option><option>转移</option><option>公海操作</option></select>
+        <select class="filter-select"><option>全部操作人</option><option>当前用户</option><option>系统</option><option>张伟</option></select>
+        <select class="filter-select"><option>全部时间</option><option>近 7 天</option><option>近 30 天</option><option>自定义</option></select>
+        <button class="btn btn-sm" onclick="alert('应用筛选')">查询</button>
+      </div>
+      <div class="table-container">
+        ${renderTable(['操作时间','操作人','操作类型','操作对象/字段','变更前','变更后','备注'],
+          [
+            ['2026-06-20 14:30','系统','状态变更','线索状态','初步触达','联系互动','邮件触发'],
+            ['2026-06-18 16:45','当前用户','字段修改','线索备注','—','客户对价格敏感','手动'],
+            ['2026-06-17 09:30','当前用户','跟进记录','—','—','初次联系','手动'],
+            ['2026-06-17 09:00','系统','新建线索','—','—','系统自动创建','来源: 网站表单'],
+          ],
+          { total: 4 })}
       </div>
     </div>`;
 
@@ -1206,6 +1879,11 @@ PAGE_RENDERERS['leads-detail'] = () => {
     </div>
   `;
 };
+
+function switchLeadDynView(btn, key) {
+  switchToggle(btn);
+  ['hist','chat','stuck'].forEach(k => { const el = document.getElementById('lead_dyn_'+k); if (el) el.style.display = (k === key ? '' : 'none'); });
+}
 
 function openEditLeadDrawer() {
   openDrawer('编辑线索',
@@ -1443,7 +2121,14 @@ function openConvertToCustomerModal() {
 
 // Leads Incubation
 PAGE_RENDERERS['leads-incubation'] = () => `
-  <div class="page-header"><h1 class="page-title">线索智能孵化</h1><button class="btn btn-sm" onclick="openFeedbackModal()">使用反馈</button></div>
+  <div class="page-header"><h1 class="page-title">线索智能孵化</h1>
+    <div class="page-actions">
+      <select class="filter-select" onchange="alert('按资料完整度筛选')"><option>资料完整度</option><option>无联系方式</option><option>信息不全</option><option>信息完整</option></select>
+      <select class="filter-select" onchange="alert('按互动情况筛选')"><option>互动情况</option><option>未联系</option><option>已营销未回复</option><option>已回复</option><option>已询盘</option></select>
+      <select class="filter-select" onchange="alert('按询盘状态筛选')"><option>询盘状态</option><option>待询盘</option><option>疑似无效询盘</option><option>高意向询盘</option></select>
+      <button class="btn btn-sm" onclick="openFeedbackModal()">使用反馈</button>
+    </div>
+  </div>
   <div class="card mb-16">
     <div class="flex-between mb-12">
       <div class="card-title" style="margin-bottom:0">私海线索分布情况</div>
@@ -1470,15 +2155,53 @@ PAGE_RENDERERS['leads-incubation'] = () => `
         <div class="flex-between mb-8"><span class="text-bold">待建联 (45)</span><button class="btn btn-sm btn-primary" onclick="openMassMarketingModal()">一键营销</button></div>
         <div class="text-sm text-muted">从未联系、建档超30天、已营销但未回复。</div>
         <div class="mt-12 text-sm text-primary">为您精选，建议优先跟进：</div>
-        <div class="mt-8">${['buyer1@trade.com','contact@newcorp.de'].map(e => `<div class="flex-between mb-4"><span class="text-sm">${e}</span><button class="btn btn-sm" onclick="openMassMarketingModal()">一键营销</button></div>`).join('')}</div>
+        <div class="mt-8 incub-rec-grid">
+          ${[
+            ['John Smith','buyer1@trade.com','美国','主动开发','06-18'],
+            ['Tech Solutions','contact@newcorp.de','德国','主动开发','06-16'],
+            ['Maria Santos','maria@trade.br','巴西','展会','06-15'],
+          ].map(r => `<div class="incub-rec-card">
+            <div class="flex-between"><span class="text-bold text-sm">${r[0]}</span><span class="table-tag primary">${r[2]}</span></div>
+            <div class="text-xs text-muted">${r[1]}</div>
+            <div class="flex-between mt-8"><span class="text-xs text-muted">${r[3]} · ${r[4]}</span>
+              <span class="flex gap-8"><button class="btn btn-sm btn-text" onclick="alert('查看 ${r[0]} 的营销计划')">营销计划</button><button class="btn btn-sm" onclick="alert('置为无效')">置为无效</button><button class="btn btn-sm btn-text" onclick="alert('为 ${r[0]} 应用标签')">标签</button></span>
+            </div>
+          </div>`).join('')}
+        </div>
       </div>
       <div class="card" style="border:1px solid var(--border-light);box-shadow:none">
         <div class="flex-between mb-8"><span class="text-bold">已回复 (38)</span><button class="btn btn-sm btn-primary" onclick="navigateTo('mail','mail-compose')">立即沟通</button></div>
         <div class="text-sm text-muted">线索已获回复，需要持续跟进并挖掘诉求。</div>
+        <div class="mt-12 text-sm text-primary">为您精选，建议优先跟进：</div>
+        <div class="mt-8 incub-rec-grid">
+          ${[
+            ['Sarah Lee','sarah@retail.uk','英国','官网询盘','06-19'],
+            ['Hans Mueller','hans@de-trade.de','德国','阿里询盘','06-18'],
+          ].map(r => `<div class="incub-rec-card">
+            <div class="flex-between"><span class="text-bold text-sm">${r[0]}</span><span class="table-tag primary">${r[2]}</span></div>
+            <div class="text-xs text-muted">${r[1]}</div>
+            <div class="flex-between mt-8"><span class="text-xs text-muted">${r[3]} · ${r[4]}</span>
+              <button class="btn btn-sm btn-primary" onclick="navigateTo('mail','mail-compose')">立即沟通</button>
+            </div>
+          </div>`).join('')}
+        </div>
       </div>
       <div class="card" style="border:1px solid var(--border-light);box-shadow:none">
         <div class="flex-between mb-8"><span class="text-bold">已询盘 (30)</span><div class="btn-group"><button class="btn btn-sm" onclick="openDistributeLeadModal()">分配线索</button><button class="btn btn-sm btn-primary" onclick="openConvertToCustomerModal()">转化客户</button></div></div>
         <div class="text-sm text-muted">识别询盘诉求明确、疑似无效询盘、推荐标签和精选线索。</div>
+        <div class="mt-12 text-sm text-primary">为您精选，建议优先跟进：</div>
+        <div class="mt-8 incub-rec-grid">
+          ${[
+            ['Al Maktoum','info@almak.ae','阿联酋','高意向','06-20'],
+            ['Lisa Wang','lisa@biz.cn','中国','新询盘','06-17'],
+          ].map(r => `<div class="incub-rec-card">
+            <div class="flex-between"><span class="text-bold text-sm">${r[0]}</span><span class="table-tag success">${r[2]}</span></div>
+            <div class="text-xs text-muted">${r[1]}</div>
+            <div class="flex-between mt-8"><span class="text-xs text-muted">${r[3]} · ${r[4]}</span>
+              <span class="flex gap-8"><button class="btn btn-sm btn-text" onclick="alert('分配 ${r[0]}')">分配</button><button class="btn btn-sm btn-text" onclick="alert('置 ${r[0]} 为无效')">置为无效</button><button class="btn btn-sm btn-text" onclick="alert('为 ${r[0]} 应用标签')">标签</button></span>
+            </div>
+          </div>`).join('')}
+        </div>
       </div>
     </div>
   </div>
@@ -1486,15 +2209,21 @@ PAGE_RENDERERS['leads-incubation'] = () => `
     <div class="card-title">孵化结果</div>
     <div class="grid-3">
       <div class="stat-card"><div class="stat-label">线索补充 - 已补充公司网址</div><div class="stat-value">12</div></div>
+      <div class="stat-card"><div class="stat-label">线索补充 - 更多联系人</div><div class="stat-value">7</div></div>
+      <div class="stat-card"><div class="stat-label">线索补充 - 其他信息</div><div class="stat-value">19</div></div>
+      <div class="stat-card"><div class="stat-label">线索营销 - 邮件已打开</div><div class="stat-value">42</div></div>
+      <div class="stat-card"><div class="stat-label">线索营销 - EDM 已打开</div><div class="stat-value">31</div></div>
       <div class="stat-card"><div class="stat-label">线索营销 - 总营销</div><div class="stat-value">56</div></div>
-      <div class="stat-card"><div class="stat-label">线索转化 - 总转化</div><div class="stat-value">8</div></div>
+      <div class="stat-card" style="border-left:3px solid var(--success)"><div class="stat-label">线索转化 - 总转化</div><div class="stat-value">8</div></div>
+      <div class="stat-card" style="border-left:3px solid var(--danger)"><div class="stat-label">无效线索</div><div class="stat-value text-danger">6</div></div>
     </div>
-    <div class="text-sm text-muted mt-12">系统累计补充 12 条公司信息，完成 56 次营销触达，成功转化 8 条线索为客户。</div>
+    <div class="text-sm text-muted mt-12">系统累计补充 12 条公司信息、7 个更多联系人、19 条其他信息；完成 56 次营销触达（邮件打开 42、EDM 打开 31）；成功转化 8 条线索为客户；识别 6 条无效线索。</div>
   </div>
 `;
 
 // ===== 5. Customer / 客户模块 =====
 PAGE_RENDERERS['customers-list'] = () => {
+  let custGroupTab = window.custGroupTab || '客群';
   const customers = [
     ['Bono Hair Intl', '2025-03-21', '德国', 'hair wig', 'Google Ads', '网站--直接访问', '官网询盘'],
     ['SWISS HAIR CLUB', '2025-11-26', '巴基斯坦', '', '', '社媒--自然', '社媒'],
@@ -1502,51 +2231,91 @@ PAGE_RENDERERS['customers-list'] = () => {
     ['Hair World Trading', '2026-03-08', '英国', '', 'Facebook', '社媒--付费', '社媒'],
     ['Glamour Wigs Ltd', '2026-05-20', '澳大利亚', 'wig', '', '展会', '展会'],
   ];
+  const normalTree = `
+    <div class="tree-item active" onclick="filterCustomerTree(this,'全部客户',356)">全部客户 <span class="count">356</span></div>
+    <div class="tree-item" onclick="filterCustomerTree(this,'已成交客户',89)">已成交客户 <span class="count">89</span></div>
+    <div class="tree-item" onclick="filterCustomerTree(this,'本月活跃客户',45)">本月活跃客户 <span class="count">45</span></div>
+    <div class="tree-item" onclick="filterCustomerTree(this,'私海未成交客户',167)">私海未成交客户 <span class="count">167</span></div>
+    <div class="tree-item" onclick="filterCustomerTree(this,'跟进人只有自己',234)">跟进人只有自己 <span class="count">234</span></div>
+    <div class="tree-group-title">客户阶段</div>
+    <div class="tree-item tree-indent" onclick="filterCustomerTree(this,'待跟进',78)">待跟进 <span class="count">78</span></div>
+    <div class="tree-item tree-indent" onclick="filterCustomerTree(this,'询盘客户',120)">询盘客户 <span class="count">120</span></div>
+    <div class="tree-item tree-indent" onclick="filterCustomerTree(this,'样单客户',45)">样单客户 <span class="count">45</span></div>
+    <div class="tree-item tree-indent" onclick="filterCustomerTree(this,'成交客户',89)">成交客户 <span class="count">89</span></div>
+    <div class="tree-group-title">国家地区</div>
+    <div class="tree-item tree-indent" onclick="filterCustomerTree(this,'欧洲',95)">欧洲 <span class="count">95</span></div>
+    <div class="tree-item tree-indent" onclick="filterCustomerTree(this,'北美',78)">北美 <span class="count">78</span></div>
+    <div class="tree-item tree-indent" onclick="filterCustomerTree(this,'亚洲',65)">亚洲 <span class="count">65</span></div>`;
+  const aiTree = `
+    <div class="alert alert-info" style="margin:0 0 12px">🤖 AI 自动筛选名单，按业务标签与行为生成</div>
+    <div class="tree-item active" onclick="filterCustomerTree(this,'高价值待激活',32)">高价值待激活 <span class="count">32</span></div>
+    <div class="tree-item" onclick="filterCustomerTree(this,'沉睡超 90 天',58)">沉睡超 90 天 <span class="count">58</span></div>
+    <div class="tree-item" onclick="filterCustomerTree(this,'相似客户扩列',41)">相似客户扩列 <span class="count">41</span></div>
+    <div class="tree-item" onclick="filterCustomerTree(this,'询盘未成交',27)">询盘未成交 <span class="count">27</span></div>
+    <div class="tree-item" onclick="filterCustomerTree(this,'高意向复购',19)">高意向复购 <span class="count">19</span></div>
+    <div class="text-xs text-muted mt-12">AI 名单每日自动更新，可在「企业管理·AI 数据」配置筛选规则。</div>`;
+  const isAi = custGroupTab === 'AI 客群';
   return `
     <div class="page-header">
-      <h1 class="page-title">客户列表</h1>
+      <h1 class="page-title">客户管理</h1>
       <div class="toggle-group"><button class="toggle-btn active" onclick="switchToggle(this)">我的客户</button><button class="toggle-btn" onclick="switchToggle(this)">团队客户</button></div>
       <div class="page-actions">
+        <button class="btn btn-sm" onclick="openCustomerImportExportDialog()">⇅ 导入导出</button>
         <button class="btn btn-sm btn-icon" onclick="openCustomerSettingsModal()">⚙</button>
         <button class="btn btn-primary" onclick="openNewCustomerDrawer()">+ 新建客户</button>
       </div>
     </div>
     <div class="page-with-sidebar">
       <div class="left-panel">
-        ${renderTabs([{label:'客群'},{label:'AI 客群'}], 0)}
-        <div class="tree-item active" onclick="filterCustomerTree(this,'全部客户',356)">全部客户 <span class="count">356</span></div>
-        <div class="tree-item" onclick="filterCustomerTree(this,'已成交客户',89)">已成交客户 <span class="count">89</span></div>
-        <div class="tree-item" onclick="filterCustomerTree(this,'本月活跃客户',45)">本月活跃客户 <span class="count">45</span></div>
-        <div class="tree-item" onclick="filterCustomerTree(this,'私海未成交客户',167)">私海未成交客户 <span class="count">167</span></div>
-        <div class="tree-item" onclick="filterCustomerTree(this,'跟进人只有自己',234)">跟进人只有自己 <span class="count">234</span></div>
-        <div class="tree-group-title">客户阶段</div>
-        <div class="tree-item tree-indent" onclick="filterCustomerTree(this,'待跟进',78)">待跟进 <span class="count">78</span></div>
-        <div class="tree-item tree-indent" onclick="filterCustomerTree(this,'询盘客户',120)">询盘客户 <span class="count">120</span></div>
-        <div class="tree-item tree-indent" onclick="filterCustomerTree(this,'样单客户',45)">样单客户 <span class="count">45</span></div>
-        <div class="tree-item tree-indent" onclick="filterCustomerTree(this,'成交客户',89)">成交客户 <span class="count">89</span></div>
-        <div class="tree-group-title">国家地区</div>
-        <div class="tree-item tree-indent" onclick="filterCustomerTree(this,'欧洲',95)">欧洲 <span class="count">95</span></div>
-        <div class="tree-item tree-indent" onclick="filterCustomerTree(this,'北美',78)">北美 <span class="count">78</span></div>
-        <div class="tree-item tree-indent" onclick="filterCustomerTree(this,'亚洲',65)">亚洲 <span class="count">65</span></div>
+        <div class="tabs comp-mini-tabs"><div class="tab-item ${isAi?'':'active'}" onclick="switchCustGroupTab('客群')">客群</div><div class="tab-item ${isAi?'active':''}" onclick="switchCustGroupTab('AI 客群')">AI 客群</div></div>
+        ${isAi ? aiTree : normalTree}
       </div>
       <div class="right-content" style="padding:0 16px">
+        <div class="bulk-toolbar">${renderCustomerBulkBar()}</div>
         <div class="flex-between mb-12">
-          <span class="table-info">全部客户 · 356 个客户</span>
-          <div class="flex gap-8"><button class="btn btn-sm btn-icon" onclick="openCustomerSearchModal()">🔍</button><button class="btn btn-sm btn-icon" onclick="openCustomerSettingsModal()">⚙</button></div>
+          <span class="table-info">${isAi?'高价值待激活':'全部客户'} · ${isAi?32:356} 个客户</span>
+          <div class="flex gap-8 items-center">
+            <input class="filter-input" placeholder="搜索客户名称/邮箱" style="height:30px;min-width:160px"/>
+            <button class="btn btn-sm" onclick="alert('高级筛选')">筛选</button>
+            <button class="btn btn-sm" onclick="alert('列设置')">列设置 ⚙</button>
+            <button class="btn btn-sm btn-icon" onclick="openCustomerSettingsModal()">⚙</button>
+          </div>
         </div>
         ${renderTable(
-          ['公司名称','首次询盘时间','国家地区','谷歌广告-关键词','谷歌广告-广告组','来源方式','客户来源','操作'],
+          ['公司名称','首次询盘时间','国家地区','谷歌广告-关键词','谷歌广告-广告组','谷歌广告-广告系列','来源方式','客户来源','操作'],
           customers.map(c => [
             '<span class="table-link" onclick="navigateTo(\'customers\',\'customers-detail\')">' + c[0] + '</span>',
-            c[1], c[2], c[3], c[4], c[5], c[6],
+            c[1], c[2], c[3], c[4], c[5]==='Google Ads'?'品牌词-搜索':'', c[5], c[6],
             '<button class="btn btn-sm btn-text" onclick="openCustomerRowMenu(this)">操作 ▾</button>'
           ]),
-          { checkbox: true, total: 356 }
+          { checkbox: true, total: isAi?32:356 }
         )}
       </div>
     </div>
   `;
 };
+function switchCustGroupTab(t) { window.custGroupTab = t; renderContent(); }
+
+function renderCustomerBulkBar() {
+  return `<div class="flex gap-8 items-center"><span class="text-sm">已选 <strong id="custSelectedCount">0</strong> 条</span>
+    <button class="btn btn-sm" onclick="alert('批量分配客户')">分配</button>
+    <button class="btn btn-sm" onclick="alert('批量加标签')">加标签</button>
+    <button class="btn btn-sm" onclick="alert('批量放入公海')">放入公海</button>
+    <button class="btn btn-sm" onclick="alert('批量导出')">导出</button>
+    <button class="btn btn-sm btn-text" style="color:var(--danger)" onclick="alert('批量删除')">删除</button></div>`;
+}
+function openCustomerImportExportDialog() {
+  openModal('客户导入 / 导出','<div class="grid-2"><div class="upload-area">📥 导入客户（Excel/CSV）</div><div class="upload-area" style="border-style:solid">📤 导出当前客户</div></div><div class="mt-12 text-sm text-muted">导入前自动查重，可选择性合并或新建客户。</div>','<button class="btn" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="closeModal();alert(\'已开始导入\')">开始导入</button>');
+}
+
+function switchCustDynView(btn, key) {
+  switchToggle(btn);
+  ['hist','chat','stuck'].forEach(k => { const el = document.getElementById('cust_dyn_'+k); if (el) el.style.display = (k === key ? '' : 'none'); });
+}
+function switchCustAiView(btn, key) {
+  switchToggle(btn);
+  ['hist','chat','stuck'].forEach(k => { const el = document.getElementById('cust_ai_'+k); if (el) el.style.display = (k === key ? '' : 'none'); });
+}
 
 function filterCustomerTree(el, label, count) {
   el.closest('.left-panel').querySelectorAll('.tree-item').forEach(function(i) { i.classList.remove('active'); });
@@ -1732,14 +2501,21 @@ PAGE_RENDERERS['customers-detail'] = () => {
 
   const panelDynamic = `
     <div class="follow-up-input" onclick="expandFollowUp(this)">点击这里记录跟进细节，同步最新进展。</div>
-    <div class="flex gap-12 mb-12">
+    <div class="flex-between mb-12">
       <div class="toggle-group">
-        <button class="toggle-btn active" onclick="switchToggle(this);document.getElementById('cust_dyn_wrap').style.display='';">历史动态</button>
-        <button class="toggle-btn" onclick="switchToggle(this);document.getElementById('cust_dyn_wrap').innerHTML='<div class=\\'card\\' style=\\'padding:40px;text-align:center\\'>AI 聊天旅程：根据沟通记录自动生成客户对话时间线</div>';">AI 聊天旅程</button>
-        <button class="toggle-btn" onclick="switchToggle(this);document.getElementById('cust_dyn_wrap').innerHTML='<div class=\\'card\\' style=\\'padding:40px;text-align:center\\'>AI 谈单卡点：暂无卡点数据</div>';">AI 谈单卡点 (0)</button>
+        <button class="toggle-btn active" onclick="switchCustDynView(this,'hist')">历史动态</button>
+        <button class="toggle-btn" onclick="switchCustDynView(this,'chat')">AI 聊天旅程</button>
+        <button class="toggle-btn" onclick="switchCustDynView(this,'stuck')">AI 谈单卡点 (0)</button>
+      </div>
+      <div class="flex gap-8 items-center">
+        <select class="filter-select" style="width:110px" onchange="alert('按类型筛选动态：'+this.value)"><option>全部类型</option><option>跟进记录</option><option>往来邮件</option><option>网站行为</option><option>表单行为</option></select>
+        <select class="filter-select" style="width:110px" onchange="alert('排序：'+this.value)"><option>最新优先</option><option>最早优先</option></select>
+        <button class="btn btn-sm btn-icon" title="刷新" onclick="alert('已刷新动态')">🔄</button>
+        <button class="btn btn-sm btn-icon" title="更多" onclick="alert('更多：导出动态 / 同步动态')">⋯</button>
       </div>
     </div>
     <div id="cust_dyn_wrap">
+      <div id="cust_dyn_hist">
       ${renderTabs([{label:'全部',count:12},{label:'跟进记录',count:1},{label:'往来邮件',count:7},{label:'聊天记录',count:0},{label:'其它',count:4}], 0, dynFilterId)}
       ${renderTabPanels(dynFilterId, [
         timelineHtml,
@@ -1748,6 +2524,9 @@ PAGE_RENDERERS['customers-detail'] = () => {
         '<div class="empty-state" style="padding:30px"><div class="empty-icon">💬</div><div class="empty-text">暂无聊天记录</div></div>',
         '<div class="timeline"><div class="timeline-item"><div class="tl-time">2025-03-21 20:39</div><div class="tl-title">网站行为</div><div class="tl-desc">浏览 Mens Hairpiece Supplies</div></div><div class="timeline-item"><div class="tl-time">2025-03-21 20:39</div><div class="tl-title">表单行为</div><div class="tl-desc">在页面 login - Bono Hair 填写并提交表单</div></div></div>'
       ])}
+      </div>
+      <div id="cust_dyn_chat" style="display:none"><div class="card" style="padding:40px;text-align:center;color:var(--text-muted)">AI 聊天旅程：根据沟通记录自动生成客户对话时间线</div></div>
+      <div id="cust_dyn_stuck" style="display:none"><div class="card" style="padding:40px;text-align:center;color:var(--text-muted)">AI 谈单卡点：暂无卡点数据</div></div>
     </div>
     <div class="text-sm text-muted mt-16 text-center">待跟进事项、AI聊天旅程、AI谈单卡点内容由AI生成</div>`;
 
@@ -1839,12 +2618,10 @@ PAGE_RENDERERS['customers-detail'] = () => {
     </div>`;
 
   const panelTips = `
-    <div class="card mb-12">
-      <div class="card-title">谈单指南 <span class="ai-badge">AI</span></div>
-      <div class="text-sm text-muted mb-12">AI 根据客户背景和沟通历史，为您推荐以下谈单要点</div>
-      ${['了解客户经营品类，重点推荐 Men Toupee 系列产品','客户来自德国，注意欧盟产品合规要求','建议提供小批量样品订单，降低客户试错成本','客户通过官网询盘进入，说明有主动采购意向，可适当加快跟进节奏'].map((t, i) =>
-        '<div class="flex gap-8 mb-8" style="padding:8px 12px;background:var(--bg);border-radius:var(--radius)"><span class="text-primary text-bold">' + (i+1) + '.</span><span class="text-sm">' + t + '</span></div>'
-      ).join('')}
+    <div class="empty-state" style="padding:48px">
+      <div class="empty-icon">💡</div>
+      <div class="empty-text">暂无 Tips</div>
+      <div class="text-sm text-muted mt-8">AI 将根据客户背景和沟通历史自动生成谈单要点</div>
     </div>`;
 
   const panelAI = `
@@ -1852,12 +2629,13 @@ PAGE_RENDERERS['customers-detail'] = () => {
     <div class="follow-up-input" onclick="expandFollowUp(this)">点击这里记录跟进细节，同步最新进展。</div>
     <div class="flex gap-12 mb-12">
       <div class="toggle-group">
-        <button class="toggle-btn active" onclick="switchToggle(this);document.getElementById('cust_ai_wrap').style.display='';">历史动态</button>
-        <button class="toggle-btn" onclick="switchToggle(this);document.getElementById('cust_ai_wrap').innerHTML='<div class=\\'card\\' style=\\'padding:40px;text-align:center\\'>AI 聊天旅程：当前样例未见具体聊天记录</div>';">AI 聊天旅程</button>
-        <button class="toggle-btn" onclick="switchToggle(this);document.getElementById('cust_ai_wrap').innerHTML='<div class=\\'card\\' style=\\'padding:40px;text-align:center\\'>AI 谈单卡点：0</div>';">AI 谈单卡点 (0)</button>
+        <button class="toggle-btn active" onclick="switchCustAiView(this,'hist')">历史动态</button>
+        <button class="toggle-btn" onclick="switchCustAiView(this,'chat')">AI 聊天旅程</button>
+        <button class="toggle-btn" onclick="switchCustAiView(this,'stuck')">AI 谈单卡点 (0)</button>
       </div>
     </div>
     <div id="cust_ai_wrap">
+      <div id="cust_ai_hist">
       ${renderTabs([{label:'全部',count:12},{label:'跟进记录',count:1},{label:'往来邮件',count:7},{label:'聊天记录',count:0},{label:'其它',count:4}], 0, 'cust_ai_filter')}
       <div class="card">
         <div class="form-section-title">2025 年动态</div>
@@ -1869,6 +2647,9 @@ PAGE_RENDERERS['customers-detail'] = () => {
           <div class="timeline-item"><div class="tl-time">2025-03-21 20:39</div><div class="tl-title">表单行为</div><div class="tl-desc">在页面 login - Bono Hair 填写并提交表单 <span class="table-tag warning">疑似无效询盘</span> <a class="text-primary text-sm">查看详情</a></div></div>
         </div>
       </div>
+      </div>
+      <div id="cust_ai_chat" style="display:none"><div class="card" style="padding:40px;text-align:center;color:var(--text-muted)">AI 聊天旅程：当前样例未见具体聊天记录</div></div>
+      <div id="cust_ai_stuck" style="display:none"><div class="card" style="padding:40px;text-align:center;color:var(--text-muted)">AI 谈单卡点：0</div></div>
     </div>
     <div class="text-sm text-muted mt-16 text-center">AI 背调内容（聊天旅程、谈单卡点）由 AI 生成</div>`;
 
@@ -1898,7 +2679,17 @@ PAGE_RENDERERS['customers-detail'] = () => {
 
   const panelDocs = `
     <div class="card">
-      <div class="flex-between mb-12"><div class="card-title" style="margin-bottom:0">全部文档</div><button class="btn btn-sm btn-primary">上传文档</button></div>
+      <div class="flex-between mb-12">
+        <div class="card-title" style="margin-bottom:0">全部文档</div>
+        <div class="flex gap-8 items-center">
+          <input class="filter-input" placeholder="搜索文档名称" style="height:30px;min-width:160px"/>
+          <select class="filter-select" onchange="alert('按类型筛选：'+this.value)"><option>全部类型</option><option>报价单</option><option>合同</option><option>图片</option><option>其他</option></select>
+          <select class="filter-select" onchange="alert('排序：'+this.value)"><option>上传时间↓</option><option>上传时间↑</option><option>文件名称</option></select>
+          <div class="toggle-group"><button class="toggle-btn active" onclick="switchToggle(this)" title="列表视图">☰</button><button class="toggle-btn" onclick="switchToggle(this)" title="网格视图">▦</button></div>
+          <button class="btn btn-sm" onclick="alert('关联已有文档')">关联文档</button>
+          <button class="btn btn-sm btn-primary">上传文档</button>
+        </div>
+      </div>
       ${renderTable(['文件名称','父级文件夹','关联类型','上传方式','文件大小','添加人','上传时间','操作'], [], {total: 0})}
     </div>`;
 
@@ -2025,15 +2816,6 @@ PAGE_RENDERERS['customers-detail'] = () => {
         ${renderTabPanels(mainTabId, [panelDynamic, panelProfile, panelBizTx, panelTips, panelAI, panelAnalysis, panelDocs, panelHistory])}
       </div>
       <div class="detail-sidebar">
-        <div class="detail-card">
-          <div class="card-title">客户分组</div>
-          <div class="flex gap-8" style="flex-wrap:wrap">
-            <span class="table-tag primary">VIP 欧洲客户</span>
-            <span class="table-tag">假发行业</span>
-            <span class="table-tag">Google 渠道</span>
-          </div>
-          <button class="btn btn-sm w-full mt-12" onclick="openEditGroupModal()">编辑分组</button>
-        </div>
         <div class="detail-card">
           <div class="flex-between"><span class="card-title" style="margin-bottom:0">进行中的商机 (0)</span><button class="btn btn-sm" onclick="openNewBusinessDrawer()">+ 添加</button></div>
         </div>
@@ -2200,13 +2982,14 @@ PAGE_RENDERERS['customers-public'] = () => {
     '</div></div>' +
     '<div class="page-with-sidebar">' +
     '<div class="left-panel">' +
-    renderTabs([{label:'客群'},{label:'AI 客群'}], 0) +
     '<div class="tree-item active" onclick="filterPublicCustomerTree(this,\'全部客户\',523)">全部客户 <span class="count">523</span></div>' +
+    '<div class="tree-item" onclick="filterPublicCustomerTree(this,\'近7天联系客户\',23)">近7天联系客户 <span class="count">23</span></div>' +
     '<div class="tree-item" onclick="filterPublicCustomerTree(this,\'90天内掉公海\',45)">90天内掉公海 <span class="count">45</span></div>' +
     '<div class="tree-item" onclick="filterPublicCustomerTree(this,\'AiReach 盘活交付\',12)">AiReach 盘活交付 <span class="count">12</span></div>' +
     '<div class="tree-item" onclick="filterPublicCustomerTree(this,\'AiReach 挖掘交付\',8)">AiReach 挖掘交付 <span class="count">8</span></div>' +
     '<div class="tree-item" onclick="filterPublicCustomerTree(this,\'已成交掉公海\',34)">已成交掉公海 <span class="count">34</span></div>' +
     '<div class="tree-item" onclick="filterPublicCustomerTree(this,\'当月询盘掉公海\',15)">当月询盘掉公海 <span class="count">15</span></div>' +
+    '<div class="tree-item" onclick="filterPublicCustomerTree(this,\'上月询盘掉公海\',9)">上月询盘掉公海 <span class="count">9</span></div>' +
     '<div class="tree-item" onclick="filterPublicCustomerTree(this,\'目标客户进公海\',28)">目标客户进公海 <span class="count">28</span></div>' +
     '<div class="tree-group-title">移入公海方式</div>' +
     '<div class="tree-item tree-indent" onclick="filterPublicCustomerTree(this,\'系统自动\',310)">系统自动 <span class="count">310</span></div>' +
@@ -2222,6 +3005,7 @@ PAGE_RENDERERS['customers-public'] = () => {
     '<div class="tree-item tree-indent" onclick="filterPublicCustomerTree(this,\'亚洲\',88)">亚洲 <span class="count">88</span></div>' +
     '</div>' +
     '<div class="right-content" style="padding:0 16px">' +
+    '<div class="bulk-toolbar"><div class="flex gap-8 items-center"><span class="text-sm">已选 <strong>0</strong> 条</span><button class="btn btn-sm" onclick="batchClaimPublic()">批量领取</button><button class="btn btn-sm" onclick="batchAssignPublic()">批量分配</button></div></div>' +
     '<div class="flex-between mb-12"><span class="table-info">全部客户 · 523 个客户</span>' +
     '<div class="flex gap-8"><button class="btn btn-sm btn-icon" onclick="openPublicCustomerSearchModal()">🔍</button><button class="btn btn-sm btn-icon" onclick="openCustomerSettingsModal()">⚙</button></div></div>' +
     renderTable(
@@ -2335,13 +3119,26 @@ function claimPublicCustomer(btn) {
   var row = btn.closest('tr');
   var name = row ? row.querySelector('.table-link') : null;
   var companyName = name ? name.textContent : '该客户';
+  btn.setAttribute('data-claim-name', companyName);
   openModal('领取客户',
     '<div style="margin-bottom:16px">确定领取 <b>' + companyName + '</b> 到我的客户吗？</div>' +
     renderFormField('跟进人', 'select', {options:['我自己','Bambi','Camila','Jade']}) +
     renderFormField('备注', 'textarea', {placeholder:'可选，填写领取原因'}),
-    '<button class="btn" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="closeModal()">确认领取</button>'
+    '<button class="btn" onclick="closeModal()">取消</button><button class="btn btn-primary" id="confirmClaimBtn" data-claim-name="' + companyName + '" onclick="confirmClaimPublic(this)">确认领取</button>'
   );
 }
+function confirmClaimPublic(modalBtn) {
+  var companyName = modalBtn.getAttribute('data-claim-name');
+  closeModal();
+  setTimeout(function() {
+    openModal('领取成功',
+      '<div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:10px 0"><div style="font-size:40px">✅</div><div style="font-weight:600">已成功领取「' + companyName + '」</div><div class="text-sm text-muted">客户已转入“我的客户”，请尽快跟进。</div></div>',
+      '<button class="btn" onclick="closeModal();navigateTo(\'customers\',\'customers-list\')">去我的客户</button><button class="btn btn-primary" onclick="closeModal()">继续领取</button>'
+    );
+  }, 120);
+}
+function batchClaimPublic() { alert('已对所选公海客户发起批量领取，领取后转入我的客户。'); }
+function batchAssignPublic() { openModal('批量分配公海客户','<div style="margin-bottom:12px">将所选客户分配给指定成员。</div>'+renderFormField('分配给','select',{options:['张伟','李娜','Camila','Jade']})+renderFormField('备注','textarea',{placeholder:'可选'}),'<button class="btn" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="closeModal();alert(\'已批量分配\')">确定</button>'); }
 
 function openPublicCustomerSearchModal() {
   openModal('搜索公海客户',
@@ -2362,28 +3159,38 @@ function openPublicCustomerSearchModal() {
 PAGE_RENDERERS['customers-archive'] = () => `
   <div class="page-header">
     <h1 class="page-title">建档建议</h1>
-    <div class="toggle-group"><button class="toggle-btn active">我的建档建议</button></div>
-    <div class="page-actions"><button class="btn btn-primary" onclick="openConfirmArchiveModal()">建为客户</button></div>
+    <div class="toggle-group"><button class="toggle-btn active" onclick="switchToggle(this)">我的建档建议</button><button class="toggle-btn" onclick="switchToggle(this)">团队建档建议</button></div>
+    <div class="page-actions">
+      <button class="btn btn-sm" onclick="alert('批量加标签')">加标签</button>
+      <button class="btn btn-sm btn-text" style="color:var(--danger)" onclick="alert('批量标记不采纳')">标记不采纳</button>
+      <button class="btn btn-primary" onclick="openConfirmArchiveModal()">建为客户</button>
+    </div>
   </div>
-  <div class="table-info mb-12">共 5 条数据</div>
+  <div class="table-info mb-12">共 12 条数据</div>
   ${renderTable(
-    ['置信度','联系人邮箱','联系人名称','建议关联公司','建议跟进人','最近邮件','最近联系时间'],
+    ['置信度','推荐来源','联系人邮箱','联系人名称','建议关联公司','建议跟进人','最近邮件','最近联系时间','操作'],
     [
-      ['<span class="table-tag success">高</span>','alex@newbuyer.com','Alex Brown','NewBuyer Ltd','Bambi','Re: Quotation Request','2026-06-20'],
-      ['<span class="table-tag success">高</span>','info@trade.co','Trade Manager','Trade Co','Camila','Product Inquiry','2026-06-19'],
-      ['<span class="table-tag warning">中</span>','buyer@mall.com','Mall Buyer','Mall Corp','Jade','Bulk Order','2026-06-18'],
-      ['<span class="table-tag warning">中</span>','sales@vendor.de','Hans Mueller','Vendor GmbH','Bambi','Partnership','2026-06-17'],
-      ['<span class="table-tag">低</span>','test@sample.com','Sample User','Sample Inc','Camila','General Inquiry','2026-06-15'],
+      ['<span class="table-tag success">高</span>','邮件识别','alex@newbuyer.com','Alex Brown','NewBuyer Ltd','Bambi','Re: Quotation Request','2026-06-20','<button class="btn btn-sm btn-primary" onclick="openConfirmArchiveModal()">建为客户</button> <button class="btn btn-sm btn-text" onclick="archiveNotAdopt(this)">更多 ▾</button>'],
+      ['<span class="table-tag success">高</span>','邮件识别','info@trade.co','Trade Manager','Trade Co','Camila','Product Inquiry','2026-06-19','<button class="btn btn-sm btn-primary" onclick="openConfirmArchiveModal()">建为客户</button> <button class="btn btn-sm btn-text" onclick="archiveNotAdopt(this)">更多 ▾</button>'],
+      ['<span class="table-tag warning">中</span>','背调补充','buyer@mall.com','Mall Buyer','Mall Corp','Jade','Bulk Order','2026-06-18','<button class="btn btn-sm btn-primary" onclick="openConfirmArchiveModal()">建为客户</button> <button class="btn btn-sm btn-text" onclick="archiveNotAdopt(this)">更多 ▾</button>'],
+      ['<span class="table-tag warning">中</span>','线索转化','sales@vendor.de','Hans Mueller','Vendor GmbH','Bambi','Partnership','2026-06-17','<button class="btn btn-sm btn-primary" onclick="openConfirmArchiveModal()">建为客户</button> <button class="btn btn-sm btn-text" onclick="archiveNotAdopt(this)">更多 ▾</button>'],
+      ['<span class="table-tag">低</span>','社媒线索','test@sample.com','Sample User','Sample Inc','Camila','General Inquiry','2026-06-15','<button class="btn btn-sm btn-primary" onclick="openConfirmArchiveModal()">建为客户</button> <button class="btn btn-sm btn-text" onclick="archiveNotAdopt(this)">更多 ▾</button>'],
     ],
-    { checkbox: true, total: 5 }
+    { checkbox: true, total: 12, pageSize: 10 }
   )}
+  <div class="flex-between mt-12"><span class="text-sm text-muted">已选 0 条</span><button class="btn btn-sm btn-text" style="color:var(--danger)" onclick="alert('批量标记不采纳')">批量标记不采纳</button></div>
 `;
 
 // Confirm Archive Modal
 function openConfirmArchiveModal() {
-  openModal('建为客户', '确定将这 1 条建为客户吗？',
-    '<button class="btn" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="closeModal()">确定</button>'
+  const n = document.querySelectorAll('#content .table-checkbox:checked').length || 1;
+  const tips = `确定将这 <b>${n}</b> 条建为客户吗？<br/><span class="text-sm text-muted">确认后系统将自动创建客户档案并关联对应线索/邮件。</span>`;
+  openModal('建为客户', `${tips}<div class="mt-12"><label class="form-label">备注（可选）</label><input class="form-input" placeholder="建为客户备注"/></div>`,
+    '<button class="btn" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="closeModal();alert(\'已建为 '+n+' 条客户\')">确定</button>'
   );
+}
+function archiveNotAdopt(btn) {
+  openModal('更多操作', '<div class="tp-help-item" onclick="closeModal();alert(\'已标记为不采纳\')">标记不采纳</div><div class="tp-help-item" onclick="closeModal();alert(\'已忽略该建档建议\')">忽略</div><div class="tp-help-item" onclick="closeModal();alert(\'查看推荐依据\')">查看推荐依据</div>','<button class="btn" onclick="closeModal()">关闭</button>');
 }
 
 // Customer Dedup
@@ -2433,37 +3240,91 @@ PAGE_RENDERERS['customers-settings'] = () => `
 `;
 
 // ===== 6. Business / 商机模块 =====
+let bizListView = 'kanban'; // kanban | list
+let bizAiAnalysisOpen = false;
 PAGE_RENDERERS['business-list'] = function() {
   return '<div class="page-header">' +
     '<h1 class="page-title">商机</h1>' +
-    '<div class="toggle-group"><button class="toggle-btn active" onclick="switchToggle(this)">我的商机</button><button class="toggle-btn" onclick="switchToggle(this)">团队商机</button></div>' +
+    '<div class="toggle-group"><button class="toggle-btn active" onclick="switchToggle(this)">我的商机</button></div>' +
     '<div class="page-actions">' +
-    '<button class="btn btn-sm" onclick="openAIAnalysis()">AI 商机转化分析</button>' +
+    '<input class="filter-input" placeholder="搜索商机名称/客户" style="height:30px;min-width:160px"/>' +
+    '<button class="btn btn-sm" onclick="toggleBizAiAnalysis()">AI 商机转化分析</button>' +
     '<button class="btn btn-sm" onclick="navigateTo(\'business\',\'business-ai-config\')">AI 商机自动化配置</button>' +
     '<button class="btn btn-primary" onclick="openNewBusinessDrawer()">+ 新建商机</button>' +
     '</div></div>' +
+    (bizAiAnalysisOpen ? renderBizAiAnalysisPanel() : '') +
     '<div class="ai-banner"><div>' +
     '<div class="ai-title">✨ 智能识商机，AI自推进，AI商机全面升级！</div>' +
     '<div class="ai-desc">汇总全渠道沟通数据，OKKI AI 智能新建/推进商机，分析谈单卡点，推动谈单转化</div>' +
     '</div><button class="btn">了解更多</button></div>' +
-    '<div class="flex-between mb-12"><div class="flex gap-8">' +
+    '<div class="flex-between mb-12"><div class="flex gap-8 items-center">' +
     '<span class="table-info">共 5186 个商机</span>' +
     '<select class="filter-select"><option>创建时间</option></select>' +
-    '<select class="filter-select"><option>降序</option><option>升序</option></select>' +
+    '<input type="date" class="filter-input" style="height:30px;width:130px" placeholder="开始日期"/>' +
+    '<input type="date" class="filter-input" style="height:30px;width:130px" placeholder="结束日期"/>' +
     '<select class="filter-select"><option>开发销售标准流程</option></select>' +
     '<select class="filter-select"><option>未归档</option></select>' +
-    '</div></div>' +
+    '</div>' +
+    '<div class="flex gap-8"><button class="btn btn-sm" onclick="alert(\'列设置\')">列设置</button><button class="btn btn-sm" onclick="alert(\'批量操作\')">批量操作</button><div class="toggle-group"><button class="toggle-btn '+(bizListView==='kanban'?'active':'')+'" onclick="setBizListView(\'kanban\')">看板视图</button><button class="toggle-btn '+(bizListView==='list'?'active':'')+'" onclick="setBizListView(\'list\')">列表视图</button></div></div></div>' +
     '<div class="alert alert-warning mb-12">💡 近30天未录入历史商机 <strong>12</strong> 个 <a class="text-primary" style="margin-left:8px">前往配置</a></div>' +
     '<div class="stat-cards mb-16">' +
     '<div class="stat-card"><div class="stat-label">总销售金额 (USD)</div><div class="stat-value">2,411,309</div></div>' +
     '<div class="stat-card"><div class="stat-label">进行中金额</div><div class="stat-value">202,533</div></div>' +
     '<div class="stat-card"><div class="stat-label">赢单金额</div><div class="stat-value">1,911,210</div></div>' +
     '</div>' +
-    '<div class="biz-pipeline" id="bizPipeline"></div>' +
-    '<div class="kanban" id="bizKanban"></div>';
+    (bizListView === 'kanban'
+      ? '<div class="biz-pipeline" id="bizPipeline"></div><div class="kanban" id="bizKanban"></div>'
+      : renderBizListView());
 };
 
+function renderBizListView() {
+  var rows = [];
+  Object.keys(BIZ_KANBAN_DATA).forEach(function(stage) {
+    BIZ_KANBAN_DATA[stage].forEach(function(c) {
+      rows.push([stage, c]);
+    });
+  });
+  return renderTable(
+    ['商机名称','客户公司','商机阶段','销售金额(USD)','负责人','预计成交','最后跟进','操作'],
+    rows.map(function(r) {
+      var s = r[0], c = r[1];
+      return [
+        '<span class="table-link" onclick="navigateTo(\'business\',\'business-detail\')">' + c.title + '</span>',
+        c.company,
+        '<span class="table-tag '+(s==='赢单'?'success':s==='输单'?'danger':'primary')+'">'+s+'</span>',
+        c.amount, c.owner, '2026-07-15', '2026-'+c.date,
+        '<button class="btn btn-sm btn-text" onclick="alert(\'操作 ▾\')">操作 ▾</button>'
+      ];
+    }),
+    { checkbox: true, total: 5186, pageSize: 20 }
+  );
+}
+
+function setBizListView(v) { bizListView = v; renderContent(); if (v === 'kanban') renderBizKanban(); }
+function openAIAnalysis() { bizAiAnalysisOpen = true; renderContent(); renderBizKanban(); }
+function toggleBizAiAnalysis() { bizAiAnalysisOpen = !bizAiAnalysisOpen; renderContent(); if (bizListView === 'kanban' && !bizAiAnalysisOpen) renderBizKanban(); }
+function renderBizAiAnalysisPanel() {
+  return '<div class="card mb-16 biz-ai-panel">' +
+    '<div class="flex-between mb-12"><div class="card-title" style="margin-bottom:0">✨ AI 商机转化分析 <span class="ai-badge">OKKI AI</span></div>' +
+    '<div class="flex gap-8"><select class="filter-select"><option>近30天</option><option>近7天</option><option>本季度</option></select><button class="btn btn-sm" onclick="toggleBizAiAnalysis()">收起 ‹</button></div></div>' +
+    '<div class="stat-cards mb-12">' +
+    '<div class="stat-card"><div class="stat-label">分析商机</div><div class="stat-value">186</div></div>' +
+    '<div class="stat-card" style="border-left:3px solid var(--warning)"><div class="stat-label">停滞商机</div><div class="stat-value text-warning">34</div></div>' +
+    '<div class="stat-card" style="border-left:3px solid var(--success)"><div class="stat-label">预计可赢单</div><div class="stat-value text-success">52</div></div>' +
+    '<div class="stat-card"><div class="stat-label">预计转化率</div><div class="stat-value">28%</div></div>' +
+    '</div>' +
+    '<div class="alert alert-info">📌 AI 分析：谈判报价阶段停滞商机最多（34 个），主要卡点为价格谈判与样品确认。建议优先推进 DLBV 特单、澳洲 clip-in 批量。</div>' +
+    '<div class="text-sm text-muted">内容由 AI 生成，仅供参考。</div>' +
+    '</div>';
+}
+
 var BIZ_KANBAN_DATA = {
+  '客户背调': [
+    {id:'b01', title:'美国假发采购意向', amount:'0', owner:'Camila', company:'Beauty Supply Co', date:'06-22'},
+  ],
+  '商机': [
+    {id:'b02', title:'巴西发片需求确认中', amount:'5,000', owner:'Bambi', company:'Maria Santos', date:'06-21'},
+  ],
   '需求确认': [
     {id:'b1', title:'巴基斯坦 wig 采购', amount:'12,500', owner:'Camila', company:'SWISS HAIR CLUB', date:'06-18'},
     {id:'b2', title:'法国假发套装', amount:'8,200', owner:'Jade', company:'Luxe Perruques', date:'06-15'},
@@ -2501,7 +3362,7 @@ function renderBizKanban() {
   var kanbanEl = document.getElementById('bizKanban');
   var pipelineEl = document.getElementById('bizPipeline');
   if (!kanbanEl) return;
-  var stageOrder = ['需求确认','谈判报价','PI','样品单','赢单','输单'];
+  var stageOrder = ['客户背调','商机','需求确认','谈判报价','PI','样品单','赢单','输单'];
 
   var lastActiveIdx = -1;
   stageOrder.forEach(function(s, i) {
@@ -2682,6 +3543,16 @@ function openNewBusinessDrawer() {
 }
 
 // Transfer Business Modal
+function composeMailTo(email) { window.composeTo = email || ''; navigateTo('mail','mail-compose'); }
+function clickBizStage(el, stage) {
+  el.closest('.stage-bar').querySelectorAll('.stage-item').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  alert('已切换销售阶段：' + stage);
+}
+function switchBizDynView(btn, key) {
+  switchToggle(btn);
+  ['hist','chat','stuck'].forEach(k => { const e = document.getElementById('biz_dyn_'+k); if (e) e.style.display = (k === key ? '' : 'none'); });
+}
 function openTransferModal() {
   openModal('转移商机',
     renderFormField('转移给', 'select', {options:['请选择新负责人','Bambi','Camila','Jade','Amy']}) +
@@ -2699,14 +3570,20 @@ PAGE_RENDERERS['business-detail'] = () => {
 
   const panelDynamic = `
     <div class="follow-up-input" onclick="expandFollowUp(this)">点击这里记录跟进细节，同步最新进展。</div>
-    <div class="flex gap-12 mb-12">
+    <div class="flex gap-8 mb-12">
+      <button class="btn btn-sm" onclick="alert('AI 写跟进')">AI 写跟进</button>
+      <button class="btn btn-sm" onclick="alert('选择跟进模板')">选择模板</button>
+      <button class="btn btn-sm btn-text" onclick="alert('同步动态：从邮件/聊天同步最新动态')">同步动态</button>
+    </div>
+    <div class="flex-between mb-12">
       <div class="toggle-group">
-        <button class="toggle-btn active" onclick="switchToggle(this);document.getElementById('biz_dyn_wrap').style.display='';">历史动态</button>
-        <button class="toggle-btn" onclick="switchToggle(this);document.getElementById('biz_dyn_wrap').innerHTML='<div class=\\'card\\' style=\\'padding:40px;text-align:center\\'>AI 聊天旅程：暂无数据</div>';">AI 聊天旅程</button>
-        <button class="toggle-btn" onclick="switchToggle(this);document.getElementById('biz_dyn_wrap').innerHTML='<div class=\\'card\\' style=\\'padding:40px;text-align:center\\'>AI 谈单卡点：暂无卡点</div>';">AI 谈单卡点 (0)</button>
+        <button class="toggle-btn active" onclick="switchBizDynView(this,'hist')">历史动态</button>
+        <button class="toggle-btn" onclick="switchBizDynView(this,'chat')">AI 聊天旅程</button>
+        <button class="toggle-btn" onclick="switchBizDynView(this,'stuck')">AI 谈单卡点 (0)</button>
       </div>
     </div>
     <div id="biz_dyn_wrap">
+      <div id="biz_dyn_hist">
       ${renderTabs([{label:'全部',count:1},{label:'跟进记录',count:0},{label:'往来邮件',count:0},{label:'聊天记录',count:0},{label:'其它',count:1}], 0, dynFilter)}
       ${renderTabPanels(dynFilter, [
         '<div class="timeline"><div class="timeline-item"><div class="tl-time">03-30 16:07</div><div class="tl-title">商机</div><div class="tl-desc">Camila 新建了一个商机<br>商机金额: USD 100.00 | 商机阶段: 客户背调 | 结束日期: 2026-04-29</div></div></div>',
@@ -2715,6 +3592,9 @@ PAGE_RENDERERS['business-detail'] = () => {
         '<div class="empty-state" style="padding:30px"><div class="empty-text">暂无聊天记录</div></div>',
         '<div class="timeline"><div class="timeline-item"><div class="tl-time">03-30 16:07</div><div class="tl-title">商机</div><div class="tl-desc">Camila 新建了一个商机</div></div></div>'
       ])}
+      </div>
+      <div id="biz_dyn_chat" style="display:none"><div class="card" style="padding:40px;text-align:center;color:var(--text-muted)">AI 聊天旅程：暂无数据</div></div>
+      <div id="biz_dyn_stuck" style="display:none"><div class="card" style="padding:40px;text-align:center;color:var(--text-muted)">AI 谈单卡点：暂无卡点</div></div>
     </div>`;
 
   const panelProfile = `
@@ -2727,6 +3607,7 @@ PAGE_RENDERERS['business-detail'] = () => {
           ['商机类型','--'],['商机来源','社媒--自然'],['归属部门','业务维护一组'],['输单描述','--'],
           ['输单原因','--'],['商机名称','巴基斯坦wig'],['负责人','Camila'],['备注','--'],
           ['其他总费用','0.0000'],['产品总金额','0.0000'],['产品总数量','0.0000'],['首次成交时间','--'],
+          ['二次开发成交时间','--'],['客户阶段','待跟进'],
         ])}
       </div>
     </div>
@@ -2735,7 +3616,8 @@ PAGE_RENDERERS['business-detail'] = () => {
       <div class="grid-2">
         ${renderDetailFields([
           ['创建时间','2026-03-30 16:07:03'],['创建方式','手动创建'],['创建人','Camila'],
-          ['更新时间','2026-03-30 16:07:03'],['当前阶段停留时间','83 天 10 小时 2 分钟'],
+          ['更新时间','2026-03-30 16:07:03'],['资料更新时间','--'],['动态更新时间','2026-03-30 16:07:03'],
+          ['商机产品更新日期','--'],['当前阶段停留时间','83 天 10 小时 2 分钟'],
         ])}
       </div>
     </div>`;
@@ -2778,7 +3660,7 @@ PAGE_RENDERERS['business-detail'] = () => {
     <div class="page-header">
       <h1 class="page-title">商机详情</h1>
       <div class="page-actions">
-        <button class="btn btn-primary" onclick="navigateTo('mail','mail-compose')">✉ 写邮件</button>
+        <button class="btn btn-primary" onclick="composeMailTo('nomanilyas567@gmail.com')">✉ 写邮件</button>
         <button class="btn" onclick="openTransferModal()">转移</button>
       </div>
     </div>
@@ -2788,6 +3670,8 @@ PAGE_RENDERERS['business-detail'] = () => {
         <span class="detail-meta-item">编号: O13428</span>
         <span class="detail-meta-item">客户: <a class="text-primary" onclick="navigateTo('customers','customers-detail')">SWISS HAIR CLUB</a></span>
         <span class="detail-meta-item">负责人: Camila</span>
+        <span class="detail-meta-item">协同跟进人: <a class="text-primary" onclick="alert('查看协同跟进人')">Jade</a></span>
+        <span class="detail-meta-item">标签: <span class="table-tag primary">高意向</span> <span class="table-tag">社媒</span></span>
         <span class="detail-meta-item">销售流程: 维护销售标准流程</span>
         <span class="detail-meta-item">销售金额: USD 100.00</span>
         <span class="detail-meta-item">结束日期: 2026-04-29</span>
@@ -2795,14 +3679,14 @@ PAGE_RENDERERS['business-detail'] = () => {
       </div>
     </div>
     <div class="stage-bar mb-16">
-      <div class="stage-item active">客户背调</div>
-      <div class="stage-item">商机</div>
-      <div class="stage-item">需求确认</div>
-      <div class="stage-item">谈判报价</div>
-      <div class="stage-item">PI</div>
-      <div class="stage-item">样品单</div>
-      <div class="stage-item">赢单</div>
-      <div class="stage-item">输单</div>
+      <div class="stage-item active" onclick="clickBizStage(this,'客户背调')">客户背调</div>
+      <div class="stage-item" onclick="clickBizStage(this,'商机')">商机</div>
+      <div class="stage-item" onclick="clickBizStage(this,'需求确认')">需求确认</div>
+      <div class="stage-item" onclick="clickBizStage(this,'谈判报价')">谈判报价</div>
+      <div class="stage-item" onclick="clickBizStage(this,'PI')">PI</div>
+      <div class="stage-item" onclick="clickBizStage(this,'样品单')">样品单</div>
+      <div class="stage-item" onclick="clickBizStage(this,'赢单')">赢单</div>
+      <div class="stage-item" onclick="clickBizStage(this,'输单')">输单</div>
     </div>
     <div class="detail-page">
       <div class="detail-main">
@@ -2823,6 +3707,9 @@ PAGE_RENDERERS['business-detail'] = () => {
               <span>📞 923008015673</span>
               <span>📱 WhatsApp: 923008015673</span>
               <span>Facebook: Swiss Hair Club</span>
+              <span>性别: 不设置</span>
+              <span>要到邮箱时间: 2025-11-26</span>
+              <span>要到邮箱客服: Jade</span>
             </div>
           </div>
         </div>
@@ -2863,7 +3750,7 @@ PAGE_RENDERERS['business-ai-config'] = () => `
   </div>
 `;
 
-PAGE_RENDERERS['business-ai-analysis'] = PAGE_RENDERERS['business-list'];
+PAGE_RENDERERS['business-ai-analysis'] = function() { bizAiAnalysisOpen = true; return PAGE_RENDERERS['business-list'](); };
 
 // ===== 7. OKKI Leads =====
 PAGE_RENDERERS['okki-smart'] = () => `
@@ -3088,33 +3975,70 @@ PAGE_RENDERERS['okki-whatsapp'] = () => `
 `;
 
 // ===== 8. Transaction / 交易模块 =====
-PAGE_RENDERERS['tx-process'] = () => `
-  <div class="page-header"><h1 class="page-title">跟单流程</h1></div>
-  <div class="card">
-    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:2px;text-align:center">
-      ${[
-        {role:'业务', nodes:['询盘','报价单','销售订单']},
-        {role:'采购', nodes:['询价任务','采购任务','采购订单','以销定购','供应商管理']},
-        {role:'跟单', nodes:['出运单']},
-        {role:'财务', nodes:['费用单','付款单','回款单','回款登记']},
-        {role:'仓管', nodes:['入库任务','出库任务','采购入库','销售出库']},
-      ].map(lane => `
-        <div class="flow-lane">
-          <div class="flow-lane-title">${lane.role}</div>
-          ${lane.nodes.map(n => `
-            <div class="flow-node">${n}</div>
-            <div class="flow-arrow">↓</div>
+PAGE_RENDERERS['tx-process'] = () => {
+  const txMenu = [
+    { group: '跟单', items: [['tx-process','跟单流程',true]] },
+    { group: '产品管理', items: [['tx-product','产品',false],['tx-ali-product','阿里商品',false]] },
+    { group: '订单管理', items: [['tx-order','销售订单',false]] },
+    { group: '资金管理', items: [['tx-alipay','Alibaba.com Pay',false]] },
+  ];
+  const lanes = [
+    { role:'业务', nodes:[['询盘','done','询盘客户 John Smith'],['报价单','done','已发送报价单 Q-20260623-01'],['销售订单','current','创建销售订单 SO-20260623-001 (待确认 PI)']] },
+    { role:'采购', nodes:[['询价任务','done','已发起询价任务 PC-0623'],['采购任务','done','已生成采购任务'],['采购订单','pending','待创建采购订单'],['以销定购','pending','以销定购待处理'],['供应商管理','pending','供应商可视化']] },
+    { role:'跟单', nodes:[['出运单','pending','待创建出运单']] },
+    { role:'财务', nodes:[['费用单','pending','附加费用待录入'],['付款单','pending','供应商付款待付'],['回款单','pending','待客户回款'],['回款登记','pending','回款登记待登记']] },
+    { role:'仓管', nodes:[['入库任务','pending','待创建入库'],['出库任务','pending','待创建出库'],['采购入库','pending','待采购入库'],['销售出库','pending','待销售出库']] },
+  ];
+  return `
+    <div class="page-header"><h1 class="page-title">跟单流程</h1>
+      <div class="page-actions"><input class="filter-input" placeholder="搜索节点/单据" style="height:30px;min-width:160px"/><button class="btn btn-sm" onclick="alert('导出流程图')">导出</button></div>
+    </div>
+    <div class="page-with-sidebar tx-process-page">
+      <div class="left-panel tx-leftmenu">
+        <div class="left-panel-title">交易菜单 ${''}</div>
+        <input class="filter-input" placeholder="搜索菜单" style="width:calc(100% - 24px);margin:0 12px 8px;height:28px"/>
+        ${txMenu.map(g => `<div class="tree-group-title">${g.group}</div>${g.items.map(it=>`<div class="tree-item ${it[2]?'active':''}" onclick="navigateTo('transaction','${it[0]}')">${it[1]}</div>`).join('')}`).join('')}
+      </div>
+      <div class="right-content" style="padding:16px;overflow-x:auto">
+        <div class="flex gap-8 mb-12" style="flex-wrap:wrap">
+          ${['发起','创建','关联回款','核销'].map(a=>`<span class="table-tag primary">${a}</span>`).join('')}
+          <span class="text-sm text-muted">当前订单：SO-20260623-001 · ABC Company</span>
+        </div>
+        <div class="alert alert-info mb-12">🔗 跨泳道流转：业务「销售订单」→ 采购「采购订单」→ 跟单「出运单」→ 仓管「销售出库」→ 财务「回款登记 / 核销」。点击节点查看详情并推进。</div>
+        <div class="flow-swimlane">
+          ${lanes.map(lane => `
+            <div class="flow-lane-row">
+              <div class="flow-lane-label">${lane.role}</div>
+              <div class="flow-lane-cells">
+                ${lane.nodes.map((n,i)=>`<div class="flow-node ${n[1]}" onclick="openProcessNodeDetail('${lane.role}','${n[0]}','${n[2]}')">
+                  <div class="fn-title">${n[0]}</div><div class="fn-desc text-muted">${n[2]}</div>
+                  <div class="fn-status ${n[1]}">${n[1]==='done'?'已完成':n[1]==='current'?'进行中':'待处理'}</div>
+                </div>${i<lane.nodes.length-1?'<span class="fn-arrow">→</span>':''}`).join('')}
+              </div>
+            </div>
           `).join('')}
         </div>
-      `).join('')}
+        <div class="divider"></div>
+        <div class="flex gap-12 mt-12" style="justify-content:center">
+          <div class="flow-node" style="background:var(--primary-light);color:var(--primary)" onclick="alert('订单毛利分析')">订单毛利</div>
+          <div class="flow-node" style="background:var(--primary-light);color:var(--primary)" onclick="alert('数据分析')">数据分析</div>
+        </div>
+      </div>
     </div>
-    <div class="divider"></div>
-    <div class="flex gap-12 justify-center" style="justify-content:center">
-      <div class="flow-node" style="background:var(--primary-light);color:var(--primary)">订单毛利</div>
-      <div class="flow-node" style="background:var(--primary-light);color:var(--primary)">数据分析</div>
+  `;
+};
+function openProcessNodeDetail(role, node, desc) {
+  openModal(role + ' · ' + node, `
+    <div class="info-list">
+      <div class="info-item"><span class="info-label">流程节点</span><span class="info-value">${role} / ${node}</span></div>
+      <div class="info-item"><span class="info-label">关联单据</span><span class="info-value">${desc}</span></div>
+      <div class="info-item"><span class="info-label">节点状态</span><span class="info-value">进行中</span></div>
+      <div class="info-item"><span class="info-label">负责人</span><span class="info-value">张伟</span></div>
+      <div class="info-item"><span class="info-label">计划时间</span><span class="info-value">2026-06-23</span></div>
     </div>
-  </div>
-`;
+    <div class="mt-12"><button class="btn btn-sm btn-primary" onclick="alert('推进该节点')">推进</button> <button class="btn btn-sm" onclick="alert('查看节点详情')">查看详情</button></div>
+  `, '<button class="btn" onclick="closeModal()">关闭</button>');
+}
 
 // Products
 PAGE_RENDERERS['tx-product'] = () => {
@@ -3144,9 +4068,9 @@ PAGE_RENDERERS['tx-product'] = () => {
         <div class="flex-between mb-12">
           <span class="table-info">共 156 个产品</span>
           <div class="btn-group">
-            <button class="btn btn-sm">下载</button>
-            <button class="btn btn-sm">导入 ▾</button>
-            <button class="btn btn-sm btn-primary">新建 ▾</button>
+            <button class="btn btn-sm" onclick="alert('下载产品列表')">下载</button>
+            <div style="position:relative"><button class="btn btn-sm" onclick="toggleProductImportMenu(this)">导入 ▾</button></div>
+            <div style="position:relative"><button class="btn btn-sm btn-primary" onclick="toggleProductCreateMenu(this)">新建 ▾</button></div>
           </div>
         </div>
         ${renderTable(
@@ -3159,15 +4083,132 @@ PAGE_RENDERERS['tx-product'] = () => {
   `;
 };
 
-// Ali Products
+function toggleProductCreateMenu(btn) { openProductCreateMenu(btn); }
+function openProductCreateMenu(btn) {
+  openModal('新建产品', '<div class="text-sm text-muted mb-12">请选择产品类型</div>' +
+    `<div class="row-action-item" onclick="closeModal();openProductForm('无规格产品')"><span class="row-action-icon">📦</span> 无规格产品</div>` +
+    `<div class="row-action-item" onclick="closeModal();openProductForm('多规格产品')"><span class="row-action-icon">📋</span> 多规格产品（含规格/型号）</div>` +
+    `<div class="row-action-item" onclick="closeModal();openProductForm('组合产品')"><span class="row-action-icon">🗃️</span> 组合产品（多个单品组合）</div>`,
+    '<button class="btn" onclick="closeModal()">取消</button>');
+}
+function toggleProductImportMenu(btn) {
+  openModal('导入产品', '<div class="text-sm text-muted mb-12">请选择导入类型</div>' +
+    '<div class="row-action-item" onclick="closeModal();alert(\'导入无规格产品\')"><span class="row-action-icon">📥</span> 导入无规格产品</div>' +
+    '<div class="row-action-item" onclick="closeModal();alert(\'导入多规格产品\')"><span class="row-action-icon">📥</span> 导入多规格产品</div>' +
+    '<div class="row-action-item" onclick="closeModal();alert(\'导入组合产品\')"><span class="row-action-icon">📥</span> 导入组合产品</div>' +
+    '<div class="row-action-item" onclick="closeModal();alert(\'导入产品图片\')"><span class="row-action-icon">🖼️</span> 导入产品图片</div>' +
+    '<div class="row-action-item" onclick="closeModal();alert(\'导入配件清单\')"><span class="row-action-icon">📦</span> 导入配件清单</div>',
+    '<button class="btn" onclick="closeModal()">取消</button><button class="btn btn-text" style="margin-right:auto" onclick="alert(\'下载标准模板\')">下载模板</button>');
+}
+function openProductForm(type) {
+  openDrawer('新建' + type, `
+    <div class="alert alert-info mb-12">💡 ${type}：请完善以下信息，带 <span class="text-danger">*</span> 为必填</div>
+    <div class="form-section">
+      <div class="form-section-title">基本信息</div>
+      ${renderFormField('产品图片','-',{})}
+      <div class="upload-area" style="padding:16px">📷 上传产品图片（可拖拽/粘贴，最多 6 张，也可从云盘上传）</div>
+      ${renderFormField('产品名称','text',{required:true,placeholder:'请输入产品名称'})}
+      ${renderFormField('中文名称','text',{placeholder:'请输入中文名称'})}
+      ${renderFormField('产品编号','text',{placeholder:'自动生成或手动填写'})}
+      ${renderFormField('产品分组','select',{options:['请选择','男块','女装','辅料','未分组']})}
+      ${renderFormField('型号','text',{placeholder:'产品型号'})}
+      ${renderFormField('条形码','text',{placeholder:'产品条形码'})}
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">产品特性</div>
+      ${renderFormField('产品描述','textarea',{placeholder:'产品详细描述'})}
+      ${renderFormField('材质','text',{placeholder:'如：100% 人发'})}
+      ${renderFormField('产地','text',{placeholder:'产地'})}
+      ${renderFormField('是否定制','select',{options:['否','是']})}
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">价格信息</div>
+      <div class="grid-2">
+        ${renderFormField('离岸价模式','select',{options:['固定单价','区间定价','按数量阶梯定价']})}
+        ${renderFormField('最小起订量(MOQ)','text',{placeholder:'1'})}
+        ${renderFormField('离岸价币种','select',{options:['USD','CNY','EUR','GBP']})}
+        ${renderFormField('离岸价','text',{placeholder:'0.00'})}
+        ${renderFormField('含税成本价币种','select',{options:['CNY','USD']})}
+        ${renderFormField('含税成本价','text',{placeholder:'0.00'})}
+      </div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">尺寸信息</div>
+      <div class="grid-2">
+        ${renderFormField('产品长(cm)','text',{})}
+        ${renderFormField('产品宽(cm)','text',{})}
+        ${renderFormField('产品高(cm)','text',{})}
+        ${renderFormField('产品体积(m³)','text',{})}
+        ${renderFormField('产品净重(kg)','text',{})}
+      </div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">包装信息</div>
+      <div class="grid-2">
+        ${renderFormField('包装长(cm)','text',{})}
+        ${renderFormField('包装宽(cm)','text',{})}
+        ${renderFormField('包装高(cm)','text',{})}
+        ${renderFormField('包装体积(m³)','text',{})}
+        ${renderFormField('包装毛重(kg)','text',{})}
+        ${renderFormField('每包装产品数','text',{})}
+      </div>
+      ${renderFormField('包装说明','textarea',{placeholder:'包装方式说明'})}
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">外箱信息</div>
+      <div class="grid-2">
+        ${renderFormField('单箱长(cm)','text',{})}
+        ${renderFormField('单箱宽(cm)','text',{})}
+        ${renderFormField('单箱高(cm)','text',{})}
+        ${renderFormField('单箱体积(m³)','text',{})}
+        ${renderFormField('单箱净重(kg)','text',{})}
+        ${renderFormField('单箱毛重(kg)','text',{})}
+        ${renderFormField('每箱产品数','text',{})}
+        ${renderFormField('包装方式','select',{options:['请选择','纸箱','木箱','托盘']})}
+      </div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">报关信息</div>
+      ${renderFormField('中文报关名称','text',{placeholder:'报关用中文名称'})}
+      ${renderFormField('英文报关名称','text',{placeholder:'报关用英文名称'})}
+      <div class="grid-2">
+        ${renderFormField('海关编码','text',{placeholder:'HS Code'})}
+        ${renderFormField('申报税率','text',{placeholder:'% '})}
+        ${renderFormField('出口退税率','text',{placeholder:'%'})}
+        ${renderFormField('报关单位','select',{options:['个','套','件','千克']})}
+      </div>
+    </div>
+    ${type==='多规格产品' ? `<div class="form-section"><div class="form-section-title">规格设置</div><div class="text-sm text-muted mb-8">添加规格名与规格值，系统将自动生成 SKU 组合。</div><div class="grid-2">${renderFormField('规格名','select',{options:['颜色','尺寸','长度','密度','工艺']})}${renderFormField('规格值','text',{placeholder:'多个用逗号分隔'})}</div><button class="btn btn-sm btn-text">+ 添加规格</button></div>` : ''}
+    <div class="form-section">
+      <div class="form-section-title">配件清单</div>
+      <div class="text-sm text-muted mb-8">添加产品标配配件。</div>
+      <div class="grid-2">${renderFormField('配件名称','text',{placeholder:'配件名'})}${renderFormField('数量','text',{placeholder:'数量'})}</div>
+      <button class="btn btn-sm btn-text">+ 添加配件</button>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">更多信息</div>
+      <div class="text-sm text-muted mb-8">选择报关信息中的产品类目后可快速加载该类目的产品属性，支持添加自定义属性。</div>
+      ${renderFormField('产品属性','select',{options:['请选择产品类目加载属性','材质','长度','密度','工艺','颜色']})}
+      <div class="grid-2 mt-8">
+        ${renderFormField('属性名','text',{placeholder:'自定义属性名'})}
+        ${renderFormField('属性值','text',{placeholder:'属性值'})}
+      </div>
+      <button class="btn btn-sm btn-text">+ 添加自定义属性</button>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">附件</div>
+      <div class="upload-area">📎 上传产品说明书、检测报告等附件</div>
+    </div>
+  `, '<button class="btn" onclick="closeDrawer()">取消</button><button class="btn" onclick="closeDrawer();alert(\'已保存，可继续新增\')">保存并继续新增</button><button class="btn btn-primary" onclick="closeDrawer();alert(\'产品已创建\')">保存</button>');
+}
 PAGE_RENDERERS['tx-ali-product'] = () => `
   <div class="page-header">
     <h1 class="page-title">阿里商品</h1>
     <div class="page-actions">
-      <label class="form-switch"><span class="switch-track on"></span> 自动匹配</label>
-      <button class="btn btn-sm">生成本地产品</button>
-      <button class="btn btn-sm">同步</button>
-      <button class="btn btn-sm">批量匹配 ▾</button>
+      <label class="form-switch"><span class="switch-track on" onclick="this.classList.toggle('on')"></span> 自动匹配</label>
+      <button class="btn btn-sm" onclick="openAliGenerateProduct()">生成本地产品</button>
+      <button class="btn btn-sm" onclick="alert('同步阿里商品')">同步</button>
+      <div style="position:relative"><button class="btn btn-sm" onclick="toggleAliBatchMatchMenu(this)">批量匹配 ▾</button></div>
     </div>
   </div>
   <div class="alert alert-warning mb-12">⚠️ 发现 3 个疑似被删除或更改的阿里商品 <a class="text-primary">查看</a> | <a class="text-primary">全部移除</a></div>
@@ -3181,11 +4222,67 @@ PAGE_RENDERERS['tx-ali-product'] = () => `
     ['主图','阿里产品名称/ID','阿里店铺','型号','规格数','SKU编码','最近同步','匹配的本地产品','匹配状态','操作'],
     [
       ['🖼️','Men Hair Toupee BH4L<br><span class="text-muted text-sm">ID: 1234567890</span>','Bono Hair Store','BH4L','12','BH4L-001','2026-06-20','P001','<span class="table-tag success">已匹配</span>','<button class="btn btn-sm btn-text">查看</button>'],
-      ['🖼️','Lace Front Wig 22inch<br><span class="text-muted text-sm">ID: 1234567891</span>','Bono Hair Store','LFW22','8','','2026-06-20','','<span class="table-tag warning">未匹配</span>','<button class="btn btn-sm btn-text">生成本地产品</button>'],
+      ['🖼️','Lace Front Wig 22inch<br><span class="text-muted text-sm">ID: 1234567891</span>','Bono Hair Store','LFW22','8','','2026-06-20','','<span class="table-tag warning">未匹配</span>','<button class="btn btn-sm btn-text" onclick="openAliGenerateProduct()">生成本地产品</button>'],
     ],
     { checkbox: true, total: 89 }
   )}
 `;
+
+function toggleAliBatchMatchMenu(btn) { openAliBatchRangeMenu(btn); }
+function openAliBatchRangeMenu(btn) {
+  openModal('批量匹配 · 选择范围', '<div class="text-sm text-muted mb-12">请选择批量匹配的范围（仅适用于「未匹配」的产品）</div>' +
+    '<div class="row-action-item" onclick="closeModal();openAliBatchMatchModal(\'已勾选的 0 个产品\')"><span class="row-action-icon">☑️</span> 匹配勾选中的产品</div>' +
+    '<div class="row-action-item" onclick="closeModal();openAliBatchMatchModal(\'本页的产品\')"><span class="row-action-icon">📄</span> 匹配本页的产品</div>' +
+    '<div class="row-action-item" onclick="closeModal();openAliBatchMatchModal(\'所有页产品\')"><span class="row-action-icon">📚</span> 匹配所有页的产品</div>',
+    '<button class="btn" onclick="closeModal()">取消</button>');
+}
+function openAliBatchMatchModal(scope) {
+  openModal('批量匹配', `
+    <div class="alert alert-info mb-12">💡 建议提前在阿里国际站编辑好「SKU 商品编码」 <a class="text-primary" onclick="alert('前往阿里国际站')">前往阿里国际站 ›</a></div>
+    <div class="form-section-title">匹配范围</div>
+    <div class="text-sm mb-12">已选择：${scope}</div>
+    <div class="form-section-title mt-12">匹配规则</div>
+    <div class="flex gap-12 mb-12" style="flex-direction:column;gap:8px">
+      <label class="form-switch"><input type="radio" name="alirule" checked/> 「完整的阿里 SKU 编码」与「本地产品编号」匹配</label>
+      <label class="form-switch"><input type="radio" name="alirule"/> 「忽略前缀、后缀的阿里 SKU 编码」与「本地产品编号」匹配</label>
+      <label class="form-switch"><input type="radio" name="alirule"/> 「截取后的阿里 SKU 编码」与「本地产品编号」匹配</label>
+    </div>
+    <button class="btn btn-sm" onclick="alert('测试匹配规则：将在未匹配商品上预览匹配结果')">🧪 测试匹配规则</button>
+  `, '<button class="btn" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="closeModal();alert(\'已开始批量匹配（范围：'+scope+'），请等待完成\')">开始匹配</button>');
+}
+function openAliMatchRuleModal() {
+  openModal('匹配规则配置', `
+    <div class="grid-2">
+      ${renderFormField('匹配字段优先级','select',{options:['主图相似 > 型号 > 规格','型号 > 规格名称','阿里商品名称包含本地产品名']})}
+      ${renderFormField('图片相似度阈值','select',{options:['85%','90%','95%','99%']})}
+      ${renderFormField('同店铺优先','select',{options:['是','否']})}
+      ${renderFormField('匹配后是否自动建立关联','select',{options:['是','否']})}
+    </div>
+    <div class="form-group"><label class="form-label">排除条件</label><textarea class="form-textarea" placeholder="若商品名称包含这些词将不匹配"></textarea></div>
+  `, '<button class="btn" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="closeModal();alert(\'规则已保存\')">保存</button>');
+}
+function openAliGenerateProduct() {
+  openDrawer('生成本地产品', `
+    <div class="alert alert-info mb-12">📌 已自动带入阿里商品信息：图片、型号、规格、类目等，请确认后补充本地产品信息。</div>
+    <div class="form-section-title">来源商品</div>
+    <div class="info-list mb-12">
+      <div class="info-item"><span class="info-label">阿里商品</span><span class="info-value">Lace Front Wig 22inch (ID: 1234567891)</span></div>
+      <div class="info-item"><span class="info-label">阿里店铺</span><span class="info-value">Bono Hair Store</span></div>
+      <div class="info-item"><span class="info-label">型号</span><span class="info-value">LFW22</span></div>
+      <div class="info-item"><span class="info-label">规格数</span><span class="info-value">8</span></div>
+    </div>
+    <div class="mb-12 text-sm text-muted">已自动带入主图：</div>
+    <div class="upload-area" style="padding:12px;margin-bottom:12px">🖼️ [已带入阿里主图]</div>
+    ${renderFormField('产品名称','text',{value:'Lace Front Wig 22inch'})}
+    ${renderFormField('产品分组','select',{options:['请选择','男块','女装','辅料','未分组']})}
+    ${renderFormField('产品类型','select',{options:['无规格产品','多规格产品','组合产品']})}
+    <div class="text-sm text-muted mb-12">规格与类目已自动带入，可在下方调整。</div>
+    <div class="grid-2">
+      ${renderFormField('离岸价(USD)','text',{placeholder:'0.00'})}
+      ${renderFormField('最低起订量','text',{value:'1'})}
+    </div>
+  `, '<button class="btn" onclick="closeDrawer()">取消</button><button class="btn btn-primary" onclick="closeDrawer();alert(\'本地产品已生成，并自动关联阿里商品\')">生成产品</button>');
+}
 
 // Sales Orders
 PAGE_RENDERERS['tx-order'] = () => {
@@ -3198,13 +4295,24 @@ PAGE_RENDERERS['tx-order'] = () => {
     <div class="page-header">
       <h1 class="page-title">销售订单</h1>
       <div class="page-actions">
-        <button class="btn btn-sm" style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none">🤖 AI 数据助理</button>
-        <button class="btn btn-sm">识别PI</button>
-        <button class="btn btn-primary">+ 新建销售订单</button>
+        <button class="btn btn-sm" style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none" onclick="alert('AI 数据助理')">🤖 AI 数据助理</button>
+        <button class="btn btn-sm" onclick="alert('识别 PI')">识别PI</button>
+        <button class="btn btn-primary" onclick="alert('新建销售订单')">+ 新建销售订单</button>
       </div>
     </div>
+    <div class="filter-bar">
+      <select class="filter-select" onchange="alert('筛选客户名称')"><option>客户名称</option><option>Hair World</option><option>Pacific Corp</option></select>
+      <select class="filter-select" onchange="alert('筛选客户简称')"><option>客户简称</option></select>
+      <input class="filter-input" placeholder="订单号" />
+      <input class="filter-input" placeholder="订单名称" />
+      <input type="date" class="filter-input" placeholder="订单日期起" />
+      <input type="date" class="filter-input" placeholder="订单日期止" />
+      <input class="filter-input" placeholder="阿里订单 ID" />
+      <select class="filter-select"><option>来源店铺</option></select>
+      <button class="btn btn-sm btn-primary" onclick="alert('筛选已应用')">筛选</button>
+    </div>
     <div class="flex gap-8 mb-12">
-      <div class="toggle-group"><button class="toggle-btn active">全部订单</button><button class="toggle-btn">阿里信保</button></div>
+      <div class="toggle-group"><button class="toggle-btn active" onclick="switchToggle(this)">全部订单</button><button class="toggle-btn" onclick="switchToggle(this)">阿里信保</button></div>
     </div>
     ${renderTabs([{label:'全部'},{label:'草稿'},{label:'待收款'},{label:'待发货'},{label:'已发货'},{label:'售后'},{label:'交易成功'},{label:'交易取消'},{label:'更多'}])}
     <div class="stat-cards mb-16">
@@ -3212,6 +4320,7 @@ PAGE_RENDERERS['tx-order'] = () => {
       <div class="stat-card"><div class="stat-label">已回款金额</div><div class="stat-value">USD 987,654</div></div>
       <div class="stat-card"><div class="stat-label">待回款金额</div><div class="stat-value">USD 246,913</div></div>
       <div class="stat-card"><div class="stat-label">产品总金额</div><div class="stat-value">USD 1,100,000</div></div>
+      <div class="stat-card" style="border-left:3px solid var(--warning)"><div class="stat-label">附加费用总金额</div><div class="stat-value">USD 134,567</div></div>
     </div>
     ${renderTable(
       ['订单号','订单名称','更新日期','订单金额','客户','订单状态','ERP状态','审批状态','当前处理人','订单日期'],
@@ -3229,11 +4338,11 @@ PAGE_RENDERERS['tx-order-detail'] = () => `
   <div class="page-header">
     <h1 class="page-title">销售订单详情</h1>
     <div class="page-actions">
-      <button class="btn">变更</button>
-      <button class="btn">变更状态</button>
-      <button class="btn">关联生成 ▾</button>
-      <button class="btn">发起任务 ▾</button>
-      <button class="btn">更多 ▾</button>
+      <button class="btn" onclick="alert('变更订单')">变更</button>
+      <button class="btn" onclick="alert('变更状态')">变更状态</button>
+      <button class="btn" onclick="openOrderRelatedGenMenu()">关联生成 ▾</button>
+      <button class="btn" onclick="openOrderStartTaskMenu()">发起任务 ▾</button>
+      <button class="btn" onclick="alert('更多操作 ▾')">更多 ▾</button>
     </div>
   </div>
   <div class="detail-header">
@@ -3245,6 +4354,7 @@ PAGE_RENDERERS['tx-order-detail'] = () => `
       <span>订单日期: 2026-06-18</span>
       <span>当前处理人: Bambi</span>
       <span>业绩归属人: Bambi</span>
+      <span>业绩归属部门: 销售一组</span>
     </div>
   </div>
   <div class="stage-bar mb-16">
@@ -3255,15 +4365,57 @@ PAGE_RENDERERS['tx-order-detail'] = () => `
     <div class="stage-item">待出库</div>
     <div class="stage-item">待完成</div>
   </div>
-  ${renderTabs([{label:'订单详情'},{label:'回款单'},{label:'备货'},{label:'出运'},{label:'出库'},{label:'费用单'},{label:'相关'},{label:'操作历史'}])}
-  <div class="card">
+  ${renderTabs(
+    [
+      {label:'订单详情'},{label:'回款单'},{label:'备货'},{label:'出运'},{label:'出库'},
+      {label:'费用单'},{label:'相关'},{label:'操作历史'}
+    ], 0, 'orderDetail')}
+  <div class="card">${renderOrderDetailTab()}</div>
+`;
+
+function renderOrderDetailTab() {
+  const gid = 'orderDetail';
+  const panels = [
+    renderOrderBasePanel(),
+    renderOrderReceivablesPanel(),
+    renderOrderStockPanel('备货','备货任务已生成，预计 2026-06-25 可备货完成。'),
+    renderOrderStockPanel('出运','待创建出运单（含物流、箱单、订舱）。'),
+    renderOrderStockPanel('出库','待销售出库，出库任务待创建。'),
+    renderOrderExpensePanel(),
+    renderOrderRelatedPanel(),
+    renderOrderHistoryPanel(),
+  ];
+  return renderTabPanels(gid, panels);
+}
+
+function renderOrderBasePanel() {
+  return `
     <div class="form-section-title">基本信息</div>
     <div class="grid-2">
       ${renderDetailFields([
-        ['订单名称','2026BONO-WPWS0011'],['客户','Hair World'],['商机','--'],['联系人','John'],
-        ['价格条款','FOB'],['币种','USD'],['汇率','100USD = 675.771CNY'],['订单金额','USD 123.60'],
-        ['付款方式','T/T'],['是否退税','是'],['订单日期','2026-06-18'],['交货期','30天'],
+        ['订单名称','2026BONO-WPWS0011'],['客户','Hair World'],['商机','DLBV 特单'],['联系人','Bambi'],
+        ['联系人电话','+86 138-0000-0000'],['备注','客户要求 7 月初交货'],['国家地区','英国'],
+        ['价格条款','FOB'],['币种','USD'],['主币种金额','USD 123.60 / CNY 834.30'],
+        ['汇率','100USD = 675.771CNY'],['订单金额','USD 123.60'],['付款方式','T/T'],
+        ['关联报价单','Q-20260618-01'],['采购订单数','1'],['首次回款日期','2026-06-20'],
+        ['询价任务编号','PC-20260623-01'],['是否退税','是'],['订单日期','2026-06-18'],['交货期','30天'],
       ])}
+    </div>
+    <div class="divider"></div>
+    <div class="form-section-title">银行信息</div>
+    <div class="grid-2">
+      ${renderDetailFields([
+        ['收款银行','中国银行 深圳分行'],['收款账号','6228 4800 1234 5678 901'],
+        ['SWIFT Code','BKCHCNBJ830'],['收款人','Bono Hair Intl Co., Ltd'],
+        ['中间行','HSBC UK'],['账户币种','USD'],
+      ])}
+    </div>
+    <div class="alert alert-info mt-12 mb-12 alipay-banner-card">
+      <div class="flex gap-12 items-center">
+        <div style="font-size:24px">💳</div>
+        <div><div style="font-weight:600">Alibaba.com Pay · 在线收款</div><div class="text-sm text-muted">支持通过 Alibaba.com Pay 在线收款，资金到账更快、自动结算回款单。</div></div>
+        <button class="btn btn-sm btn-primary" style="margin-left:auto" onclick="alert('开通/关联 Alibaba.com Pay 在线收款')">立即开通</button>
+      </div>
     </div>
     <div class="divider"></div>
     <div class="form-section-title">订单产品</div>
@@ -3273,19 +4425,87 @@ PAGE_RENDERERS['tx-order-detail'] = () => `
       {}
     )}
     <div class="flex-between mt-12" style="padding:0 16px">
-      <span>产品总数量: 3</span><span>产品总金额: USD 123.60</span><span>订单金额: USD 123.60</span>
+      <span>产品总数量: 3</span><span>产品总金额: USD 123.60</span><span>附加费用: USD 0.00</span><span>订单金额: USD 123.60</span>
     </div>
     <div class="divider"></div>
     <div class="form-section-title">系统信息</div>
     <div class="grid-2">
       ${renderDetailFields([['创建日期','2026-06-18'],['创建人','Bambi'],['创建方式','ERP 同步'],['更新日期','2026-06-20']])}
     </div>
-  </div>
-`;
+  `;
+}
+function renderOrderReceivablesPanel() {
+  return renderTable(['回款单号','回款金额','币种','回款日期','回款方式','银行','状态','操作'],
+    [['RC-20260620-01','50.00','USD','2026-06-20','T/T','中国银行','<span class="table-tag success">已核销</span>','<button class="btn btn-sm btn-text">查看</button>'],
+     ['RC-20260720-01','73.60','USD','2026-07-20','T/T','中国银行','<span class="table-tag warning">待核销</span>','<button class="btn btn-sm btn-text">核销</button>']],
+    { toolbar: '<button class="btn btn-sm btn-primary">+ 新增回款单</button><button class="btn btn-sm">登记 Alipay.com Pay</button>' });
+}
+function renderOrderStockPanel(title, desc) {
+  return `<div class="alert alert-info mb-12">📌 ${title}：${desc}</div>${renderTable(['序号','单据编号','类型','负责人','计划日期','状态','操作'],[['1',(title==='备货'?'ST':'')+'-20260625-01',title,'Bambi','2026-06-25','<span class="table-tag warning">待处理</span>','<button class="btn btn-sm btn-primary">处理</button>']],{ toolbar: '<button class="btn btn-sm btn-primary">+ 新增'+title+'任务</button>' })}`;
+}
+function renderOrderExpensePanel() {
+  return renderTable(['费用单号','费用类型','币种','金额','支付方式','发生日期','状态','操作'],
+    [['EX-20260619-01','海运费','USD','320.00','公司垫付','2026-06-19','<span class="table-tag success">已支付</span>','<button class="btn btn-sm btn-text">查看</button>'],
+     ['EX-20260622-01','手续费','USD','15.00','银行扣款','2026-06-22','<span class="table-tag warning">待支付</span>','<button class="btn btn-sm btn-text">支付</button>']],
+    { toolbar: '<button class="btn btn-sm btn-primary">+ 新增费用单</button>' });
+}
+function renderOrderRelatedPanel() {
+  return `<div class="grid-2">
+    ${renderDetailFields([['关联商机','DLBV 特单'],['关联报价单','Q-20260618-01'],['采购订单','PO-20260623-01'],['出运单','待创建'],['关联线索','John Smith'],['关联客户','Hair World']])}
+  </div>`;
+}
+function renderOrderHistoryPanel() {
+  return `<div class="timeline">${(
+    [['2026-06-20 14:30','Bambi','登记回款 RC-20260620-01 · USD 50.00'],
+     ['2026-06-18 15:00','系统','订单创建（ERP 同步）'],
+     ['2026-06-18 14:00','Bambi','提交审批']].map(h => `<div class="timeline-item"><div class="tl-time">${h[0]}</div><div class="tl-title">${h[1]}</div><div class="tl-desc">${h[2]}</div></div>`).join('')
+  )}</div>`;
+}
+
+function openOrderRelatedGenMenu() {
+  const opts = ['生成报价单','生成采购订单','生成出运单','生成回款单','生成费用单'];
+  openModal('关联生成', '<div class="text-sm text-muted mb-12">从该销售订单关联生成以下单据：</div>' +
+    opts.map(o => `<div class="row-action-item" onclick="closeModal();alert('${o}')"><span class="row-action-icon">📄</span> ${o}</div>`).join(''),
+    '<button class="btn" onclick="closeModal()">取消</button>');
+}
+function openOrderStartTaskMenu() {
+  openModal('发起任务', '<div class="text-sm text-muted mb-12">从该订单发起任务：</div>' +
+    `<div class="row-action-item" onclick="closeModal();alert('发起备货任务')"><span class="row-action-icon">📦</span> 备货任务</div>` +
+    `<div class="row-action-item" onclick="closeModal();alert('发起出运任务')"><span class="row-action-icon">🚚</span> 出运任务</div>` +
+    `<div class="row-action-item" onclick="closeModal();alert('发起出库任务')"><span class="row-action-icon">📤</span> 出库任务</div>` +
+    `<div class="row-action-item" onclick="closeModal();alert('发起采购任务')"><span class="row-action-icon">🛒</span> 采购任务</div>`,
+    '<button class="btn" onclick="closeModal()">取消</button>');
+}
 
 PAGE_RENDERERS['tx-alipay'] = () => `
-  <div class="page-header"><h1 class="page-title">Alibaba.com Pay</h1></div>
-  <div class="card"><div class="empty-state"><div class="empty-icon">💳</div><div class="empty-text">Alibaba.com Pay 模块</div><div class="text-sm text-muted mt-8">收款/支付记录管理</div></div></div>
+  <div class="page-header">
+    <h1 class="page-title">Alibaba.com Pay</h1>
+    <div class="page-actions">
+      <button class="btn btn-sm" onclick="alert('资金账户流水')">流水</button>
+      <button class="btn btn-sm" onclick="alert('导出记录')">导出</button>
+      <button class="btn btn-primary" onclick="alert('开通 Alibaba.com Pay')">开通收款</button>
+    </div>
+  </div>
+  <div class="stat-cards mb-16">
+    <div class="stat-card"><div class="stat-label">账户余额 (USD)</div><div class="stat-value">86,420</div><div class="stat-sub">可用余额 86,420 · 冻结 0</div></div>
+    <div class="stat-card" style="border-left:3px solid var(--success)"><div class="stat-label">累计收款</div><div class="stat-value">524,318</div></div>
+    <div class="stat-card" style="border-left:3px solid var(--warning)"><div class="stat-label">待结算</div><div class="stat-value">12,800</div></div>
+    <div class="stat-card"><div class="stat-label">累计提现</div><div class="stat-value">425,098</div></div>
+  </div>
+  ${renderTabs([{label:'收款记录'},{label:'支付记录'},{label:'提现记录'}], 0, 'aliPay')}
+  ${renderTabPanels('aliPay', [
+    renderTable(['交易单号','订单号','客户','收款金额','币种','到账时间','手续费','结算状态','操作'],
+      [['AP-20260620-001','2026BONO-WPWS0011','Hair World','50.00','USD','2026-06-20 10:25','0.30','<span class="table-tag success">已结算</span>','<button class="btn btn-sm btn-text">查看</button>'],
+       ['AP-20260705-008','2026BONO-SFYC0032','Sunrise Exports','1,200.00','USD','2026-07-05 16:40','7.20','<span class="table-tag warning">待结算</span>','<button class="btn btn-sm btn-text">结算</button>']],
+      { checkbox:true, total: 326 }),
+    renderTable(['支付单号','采购订单','供应商','支付金额','币种','支付时间','手续费','状态','操作'],
+      [['PR-20260621-005','PO-20260623-01','供应商 A','3,200.00','CNY','2026-06-21 09:10','16.00','<span class="table-tag success">已支付</span>','<button class="btn btn-sm btn-text">查看</button>']],
+      { checkbox:true, total: 48 }),
+    renderTable(['提现单号','提现金额','币种','目标账户','申请时间','到账时间','手续费','状态','操作'],
+      [['WD-20260618-002','20,000','USD','中国银行 ****901','2026-06-18 11:00','2026-06-19 10:00','25.00','<span class="table-tag success">已到账</span>','<button class="btn btn-sm btn-text">查看</button>'],
+       ['WD-20260701-005','10,000','USD','中国银行 ****901','2026-07-01 14:30','--','10.00','<span class="table-tag warning">处理中</span>','<button class="btn btn-sm btn-text">查看</button>']],
+      { checkbox:true, total: 92 }),
+  ])}
 `;
 
 // ===== 9. Team Data / 团队数据模块 =====
@@ -3293,28 +4513,51 @@ PAGE_RENDERERS['td-completion'] = () => `
   <div class="page-header"><h1 class="page-title">目标完成情况</h1></div>
   <div class="filter-bar mb-16">
     <select class="filter-select"><option>本月</option><option>本周</option><option>本季度</option><option>本年</option></select>
-    <select class="filter-select"><option>我的企业</option></select>
+    <select class="filter-select"><option>我的企业</option><option>业务部</option><option>业务开发一组</option></select>
+    <button class="btn btn-sm">下载Excel</button>
   </div>
-  <div class="toggle-group mb-16"><button class="toggle-btn active">结果目标</button><button class="toggle-btn">过程目标</button></div>
+  <div class="toggle-group mb-16"><button class="toggle-btn active" onclick="switchToggle(this)">结果目标</button><button class="toggle-btn" onclick="switchToggle(this)">过程目标</button></div>
   <div class="stat-cards mb-16">
     ${[
-      {label:'成交订单金额',value:'¥125,800',sub:'未设定目标值'},
-      {label:'赢单商机金额',value:'¥89,500',sub:'未设定目标值'},
-      {label:'每日赢单目标完成率',value:'45%',sub:'设置目标值'},
-      {label:'新建商机数',value:'23',sub:'未设定目标值'},
-    ].map(s => `<div class="stat-card"><div class="stat-label">${s.label} <a class="text-primary text-sm">规则</a></div><div class="stat-value">${s.value}</div><div class="stat-sub">${s.sub}</div></div>`).join('')}
+      {label:'成交订单金额',value:'¥125,800',goal:'¥180,000',rate:'70%',flag:'progress'},
+      {label:'赢单商机金额',value:'¥89,500',goal:'¥120,000',rate:'75%',flag:'progress'},
+      {label:'每日赢单目标完成率',value:'45%',goal:'100%',rate:'45%',flag:'progress'},
+      {label:'新建商机数',value:'23',goal:'--',rate:'--',flag:'none'},
+    ].map(s => `
+      <div class="stat-card">
+        <div class="stat-label">${s.label} <a class="text-primary text-sm">规则</a></div>
+        <div class="stat-value">${s.value}</div>
+        <div class="stat-sub">目标值: ${s.goal} · 完成率: ${s.rate}</div>
+        ${s.flag==='progress' ? '<div class="text-xs" style="color:var(--warning)">⚠ 进度预警</div>' : s.flag==='done' ? '<div class="text-xs" style="color:var(--success)">✓ 已达标</div>' : '<div class="text-xs text-muted">未设定目标值</div>'}
+      </div>
+    `).join('')}
   </div>
-  <div class="toggle-group mb-12"><button class="toggle-btn active">排行榜</button><button class="toggle-btn">趋势图</button></div>
+  <div class="toggle-group mb-12"><button class="toggle-btn active" onclick="switchToggle(this)">排行榜</button><button class="toggle-btn" onclick="switchToggle(this)">趋势图</button></div>
   <div class="card mb-16">
-    <div class="flex-between mb-12"><div class="card-title" style="margin-bottom:0">部门排行榜</div><button class="btn btn-sm">下载Excel</button></div>
+    <div class="card-title">部门排行榜</div>
+    <div class="text-xs text-muted mb-8">已达标 / 进度预警 / 无数据 的目标值和完成率</div>
     ${renderTable(
-      ['排名','部门','成交订单金额','赢单商机金额','每日赢单完成率','新建商机数'],
+      ['排名','部门','成交订单金额','赢单商机金额','每日赢单完成率','新建商机数','状态'],
       [
-        ['🥇','业务开发一组','¥45,200 / -- / --','¥32,100 / -- / --','-- / -- / --','8 / -- / --'],
-        ['🥈','业务维护一组','¥38,900 / -- / --','¥28,500 / -- / --','-- / -- / --','6 / -- / --'],
-        ['🥉','业务开发二组','¥25,700 / -- / --','¥18,900 / -- / --','-- / -- / --','5 / -- / --'],
+        ['🥇','业务开发一组','45,200 / 50,000 / 90%','32,100 / 40,000 / 80%','80% / 100% / 80%','8 / 10 / 80%','<span class="table-tag warning">进度预警</span>'],
+        ['🥈','业务维护一组','38,900 / 35,000 / 111%','28,500 / 30,000 / 95%','95% / 100% / 95%','6 / 8 / 75%','<span class="table-tag success">已达标</span>'],
+        ['🥉','业务开发二组','25,700 / -- / --','18,900 / -- / --','-- / -- / --','5 / -- / --','<span class="table-tag">无数据</span>'],
+        ['4','业务维护二组','16,000 / 20,000 / 80%','10,400 / 15,000 / 69%','69% / 100% / 69%','4 / 6 / 67%','<span class="table-tag warning">进度预警</span>'],
       ],
-      { total: 3 }
+      { total: 4 }
+    )}
+  </div>
+  <div class="card">
+    <div class="card-title">成员排行榜</div>
+    ${renderTable(
+      ['排名','成员','部门','成交订单金额','赢单商机金额','新建商机数','状态'],
+      [
+        ['🥇','Bambi','业务开发一组','¥45,200','¥32,100','8','<span class="table-tag success">已达标</span>'],
+        ['🥈','Camila','业务维护一组','¥38,900','¥28,500','6','<span class="table-tag success">已达标</span>'],
+        ['🥉','Jade','业务开发二组','¥25,700','¥18,900','5','<span class="table-tag">无数据</span>'],
+        ['4','Amy','业务维护二组','¥16,000','¥10,400','4','<span class="table-tag warning">进度预警</span>'],
+      ],
+      { total: 4 }
     )}
   </div>
 `;
@@ -3324,25 +4567,73 @@ PAGE_RENDERERS['td-manage'] = () => `
     <h1 class="page-title">目标管理</h1>
     <div class="page-actions">
       <button class="btn btn-sm">目标起始月份</button>
-      <button class="btn btn-sm">目标完成情况</button>
-      <button class="btn btn-primary">+ 新建目标</button>
+      <button class="btn btn-sm" onclick="navigateTo('team-data','td-completion')">目标完成情况</button>
+      <button class="btn btn-primary" onclick="openNewGoalModal()">+ 新建目标</button>
     </div>
   </div>
-  <div class="alert alert-info mb-16">设置过程/结果目标后，系统可自动分析完成进度</div>
-  <div class="card-title">目标设置模版</div>
-  <div class="grid-3 mb-16">
-    ${['成交订单金额','赢单商机金额','订单毛利','成交客户数','复购客户数','成交订单数'].map(t =>
-      `<div class="card" style="border:1px solid var(--border-light);cursor:pointer"><div class="text-bold mb-4">${t}</div><div class="text-sm text-muted">以订单结算</div><button class="btn btn-sm btn-text mt-8">使用此模板</button></div>`
+  <div class="alert alert-info mb-16">💡 设置过程/结果目标后，系统可自动分析完成进度</div>
+  <div class="card mb-16">
+    <div class="flex-between mb-12"><div class="card-title" style="margin-bottom:0">我的目标</div><div class="toggle-group"><button class="toggle-btn active" onclick="switchToggle(this)">结果目标</button><button class="toggle-btn" onclick="switchToggle(this)">过程目标</button></div></div>
+    ${renderTable(
+      ['目标名称','目标类型','统计方式','目标周期','目标值','当前完成','完成率','状态'],
+      [
+        ['成交订单金额','结果目标','以订单结算','2026-06','¥180,000','¥125,800','70%','<span class="table-tag warning">进行中</span>'],
+        ['赢单商机金额','结果目标','以商机结算','2026-06','¥120,000','¥89,500','75%','<span class="table-tag warning">进行中</span>'],
+        ['新建客户数','过程目标','自动统计','2026-06','30','18','60%','<span class="table-tag warning">进行中</span>'],
+        ['发送邮件数','过程目标','自动统计','2026-06','500','432','86%','<span class="table-tag warning">进行中</span>'],
+      ],
+      { total: 4 }
+    )}
+  </div>
+  <div class="card-title mb-12">目标设置模版</div>
+  <div class="toggle-group mb-12"><button class="toggle-btn active" onclick="switchToggle(this)">结果目标模版</button><button class="toggle-btn" onclick="switchToggle(this)">过程目标模版</button></div>
+  <div class="grid-3">
+    ${[
+      {name:'成交订单金额',cat:'成交金额',desc:'以订单结算'},
+      {name:'订单毛利',cat:'成交金额',desc:'以订单结算'},
+      {name:'成交新客户订单金额',cat:'成交金额',desc:'以订单结算'},
+      {name:'复购客户数',cat:'客户数',desc:'以客户结算'},
+      {name:'成交客户数',cat:'客户数',desc:'以客户结算'},
+      {name:'首次成交客户数',cat:'客户数',desc:'以客户结算'},
+      {name:'成交订单数',cat:'订单数',desc:'以订单结算'},
+      {name:'大额订单数',cat:'订单数',desc:'以订单结算'},
+      {name:'已回款的订单数',cat:'订单数',desc:'以回款单结算'},
+    ].map(t =>
+      `<div class="card" style="border:1px solid var(--border-light);cursor:pointer">
+        <div class="text-xs text-muted mb-4">${t.cat}</div>
+        <div class="text-bold mb-4">${t.name}</div>
+        <div class="text-sm text-muted mb-8">${t.desc}</div>
+        <button class="btn btn-sm btn-text" onclick="openNewGoalModal('${t.name}')">使用此模板创建目标</button>
+      </div>`
     ).join('')}
   </div>
 `;
+
+function openNewGoalModal(tplName) {
+  openModal('新建目标', `
+    ${renderFormField('目标名称', 'text', {value: tplName || '', placeholder:'目标名称'})}
+    <div class="form-row">
+      ${renderFormField('目标类型', 'select', {options:['结果目标','过程目标']})}
+      ${renderFormField('统计方式', 'select', {options:['以订单结算','以商机结算','以回款单结算','自动统计']})}
+    </div>
+    <div class="form-row">
+      ${renderFormField('目标周期', 'select', {options:['日度','周度','月度','季度','年度']})}
+      ${renderFormField('适用范围', 'select', {options:['全部门','业务部','业务开发一组','指定成员']})}
+    </div>
+    <div class="form-row">
+      ${renderFormField('目标值', 'text', {placeholder:'请输入目标值'})}
+      ${renderFormField('目标起始月份', 'month', {value:'2026-06'})}
+    </div>
+    ${renderFormField('备注', 'textarea', {placeholder:'目标说明...'})}
+  `, '<button class="btn" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="closeModal()">保存</button>');
+}
 
 PAGE_RENDERERS['td-wall'] = () => `
   <div class="page-header">
     <h1 class="page-title">团队墙</h1>
     <div class="page-actions">
-      <select class="filter-select"><option>本季度</option></select>
-      <button class="btn btn-sm">目标设置</button>
+      <select class="filter-select"><option>本季度</option><option>本月</option><option>本年</option></select>
+      <button class="btn btn-sm" onclick="navigateTo('enterprise','ent-goal-mgmt')">目标设置</button>
       <button class="btn btn-sm">刷新</button>
       <button class="btn btn-sm">组件配置</button>
     </div>
@@ -3353,26 +4644,60 @@ PAGE_RENDERERS['td-wall'] = () => `
       <div style="font-size:28px;font-weight:700;margin:8px 0">9 天</div>
       <div style="font-size:12px;opacity:.8">${new Date().toLocaleDateString('zh-CN')}</div>
     </div>
-    <div class="stat-card"><div class="stat-label">成交订单金额</div><div class="stat-value">¥125,800</div><div class="stat-sub">目标: -- | 完成率: --</div></div>
+    <div class="stat-card">
+      <div class="stat-label">成交订单金额</div>
+      <div class="stat-value">¥125,800</div>
+      <div class="stat-sub">完成值 / 目标 ¥180,000</div>
+      <div class="progress-bar mt-8"><div class="progress-fill" style="width:70%;background:var(--primary)"></div></div>
+      <div class="text-xs text-muted mt-4">完成率 70%</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">赢单商机金额</div>
+      <div class="stat-value">¥89,500</div>
+      <div class="stat-sub">完成值 / 目标 ¥120,000</div>
+      <div class="progress-bar mt-8"><div class="progress-fill" style="width:75%;background:var(--success)"></div></div>
+      <div class="text-xs text-muted mt-4">完成率 75%</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">新建客户数</div>
+      <div class="stat-value">18</div>
+      <div class="stat-sub">完成值 / 目标 30</div>
+      <div class="progress-bar mt-8"><div class="progress-fill" style="width:60%;background:var(--warning)"></div></div>
+      <div class="text-xs text-muted mt-4">完成率 60%</div>
+    </div>
   </div>
   <div class="grid-2 mb-16">
     <div class="card">
       <div class="card-title">成交订单金额排行榜 🏆</div>
-      ${['Bambi - ¥45,200','Camila - ¥38,900','Jade - ¥25,700','Amy - ¥16,000'].map((r, i) =>
-        `<div class="flex-between" style="padding:8px 0;border-bottom:1px solid var(--border-light)"><span>${['🥇','🥈','🥉','4️⃣'][i]} ${r.split(' - ')[0]}</span><span class="text-bold">${r.split(' - ')[1]}</span></div>`
-      ).join('')}
+      ${['Bambi - ¥45,200','Camila - ¥38,900','Jade - ¥25,700','Amy - ¥16,000'].map((r, i) => {
+        const [name, val] = r.split(' - ');
+        const pct = [100,86,57,36][i];
+        return `<div style="padding:8px 0;border-bottom:1px solid var(--border-light)">
+          <div class="flex-between mb-4"><span>${['🥇','🥈','🥉','4️⃣'][i]} ${name}</span><span class="text-bold">${val}</span></div>
+          <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+        </div>`;
+      }).join('')}
     </div>
     <div class="card">
       <div class="card-title">客户邮件发送数排行榜 📧</div>
-      ${['Camila - 156','Bambi - 134','Jade - 98','Amy - 67'].map((r, i) =>
-        `<div class="flex-between" style="padding:8px 0;border-bottom:1px solid var(--border-light)"><span>${['🥇','🥈','🥉','4️⃣'][i]} ${r.split(' - ')[0]}</span><span class="text-bold">${r.split(' - ')[1]}</span></div>`
-      ).join('')}
+      ${['Camila - 156','Bambi - 134','Jade - 98','Amy - 67'].map((r, i) => {
+        const [name, val] = r.split(' - ');
+        const pct = [100,86,63,43][i];
+        return `<div style="padding:8px 0;border-bottom:1px solid var(--border-light)">
+          <div class="flex-between mb-4"><span>${['🥇','🥈','🥉','4️⃣'][i]} ${name}</span><span class="text-bold">${val}</span></div>
+          <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:var(--success)"></div></div>
+        </div>`;
+      }).join('')}
     </div>
   </div>
-  <div class="grid-3">
+  <div class="grid-3 mb-16">
     <div class="stat-card"><div class="stat-label">营销发件数</div><div class="stat-value">234</div></div>
     <div class="stat-card"><div class="stat-label">新建客户数</div><div class="stat-value">18</div></div>
     <div class="stat-card"><div class="stat-label">新建销售订单数</div><div class="stat-value">12</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">业务新建商机数排名情况</div>
+    <div class="chart-placeholder" style="min-height:200px">📊 柱状图：Bambi 8 / Camila 6 / Jade 5 / Amy 4 / 其他 3</div>
   </div>
 `;
 
@@ -3382,26 +4707,45 @@ PAGE_RENDERERS['td-ai-monitor'] = () => `
     <div class="flex-between">
       <div><div class="card-title" style="margin-bottom:0">🤖 AI 数据助理</div><div class="text-sm text-muted">AI智能监测您的数据变化，利用大模型技术多视角监测数据差异</div></div>
     </div>
+    <div class="divider"></div>
+    <div class="card-title">推荐问题</div>
+    <div class="grid-2">
+      ${['今年销售订单总金额是多少？','哪些客户需要重点跟进？','今年赢单商机金额 Top10 客户','本月新增客户来源分布','各销售阶段商机转化率','哪些业务员本周邮件回复最慢？'].map(q =>
+        `<div class="tree-item" style="border:1px solid var(--border-light);border-radius:var(--radius);margin-bottom:4px;cursor:pointer">${q}</div>`
+      ).join('')}
+    </div>
   </div>
   <div class="filter-bar mb-12">
     <input class="filter-input" type="date" />
-    <select class="filter-select"><option>全部主题</option><option>客户跟进提醒</option><option>新增客户情况</option><option>商机输单分析</option></select>
+    <select class="filter-select"><option>全部主题</option><option>客户跟进提醒</option><option>新增客户情况</option><option>私海客户分布情况</option><option>商机输单原因分析</option></select>
     <label class="form-switch"><input type="checkbox" /> 只看未读</label>
     <button class="btn btn-sm">设置监测人员范围</button>
   </div>
   ${[
-    {date:'2026-06-21',topic:'客户跟进提醒',title:'本周有 15 位客户超过 7 天未联系',desc:'建议尽快跟进以下高价值客户：SWISS HAIR CLUB（83天未联系）、Bono Hair（14天未联系）...', unread:true},
-    {date:'2026-06-20',topic:'新增客户情况',title:'昨日新增 3 位客户，较上周日均增长 50%',desc:'新客户主要来源：官网询盘 2 位、社媒 1 位。建议重点关注官网渠道效果。', unread:true},
-    {date:'2026-06-19',topic:'商机输单原因分析',title:'本月输单商机 8 个，主要原因为价格不匹配',desc:'价格不匹配占比 62.5%，建议调整报价策略。客户未回复占比 25%，建议加强跟进频率。', unread:false},
+    {date:'2026-06-21',topic:'客户跟进提醒',title:'本周有 15 位客户超过 7 天未联系',desc:'建议尽快跟进以下高价值客户：SWISS HAIR CLUB（83天未联系）、Bono Hair（14天未联系）...',sug:'行动建议：对 83 天未联系的高价值客户优先发送产品更新邮件；对 14 天未联系客户安排电话回访。',risk:'风险提示：长时间未联系可能导致客户流失到竞品。', unread:true},
+    {date:'2026-06-20',topic:'新增客户情况',title:'昨日新增 3 位客户，较上周日均增长 50%',desc:'新客户主要来源：官网询盘 2 位、社媒 1 位。建议重点关注官网渠道效果。',sug:'行动建议：加大对官网询盘页面的 SEO 投入；对新增客户 24h 内完成首次建联。',risk:'', unread:true},
+    {date:'2026-06-19',topic:'商机输单原因分析',title:'本月输单商机 8 个，主要原因为价格不匹配',desc:'价格不匹配占比 62.5%，建议调整报价策略。客户未回复占比 25%，建议加强跟进频率。',sug:'行动建议：梳理报价模板，针对价格敏感客户预留议价空间。',risk:'风险提示：价格不匹配持续偏高可能反映定价策略与市场脱节。', unread:false},
+    {date:'2026-06-18',topic:'私海客户分布情况',title:'业务员 Bambi 私海客户数达 218，超出合理上限',desc:'建议将长期未成交客户转入公海，释放跟进精力。',sug:'行动建议：批量筛选 90 天未联系私海客户，转入公海池。',risk:'', unread:false},
   ].map(c => `
     <div class="card mb-12" style="border-left:3px solid ${c.unread ? 'var(--primary)' : 'var(--border)'}">
       <div class="flex-between mb-8">
         <div class="flex gap-8"><span class="text-sm text-muted">${c.date}</span><span class="table-tag primary">${c.topic}</span>${c.unread ? '<span class="table-tag danger">未读</span>' : ''}</div>
+        <div><button class="btn btn-sm btn-text">查看详情</button><button class="btn btn-sm btn-text">忽略</button></div>
       </div>
       <div class="text-bold mb-4">${c.title}</div>
-      <div class="text-sm text-muted">${c.desc}</div>
+      <div class="text-sm text-muted mb-8">${c.desc}</div>
+      <div class="text-sm" style="color:var(--primary)">💡 ${c.sug}</div>
+      ${c.risk ? `<div class="text-sm mt-4" style="color:var(--danger)">⚠ ${c.risk}</div>` : ''}
     </div>
   `).join('')}
+  <div class="card">
+    <div class="card-title mb-8">历史监测记录</div>
+    ${renderTable(['日期','监测主题','摘要','状态','操作'],
+      [['2026-06-15','客户跟进提醒','12 位客户超过 14 天未联系','<span class="table-tag">已读</span>','<button class="btn btn-sm btn-text">查看</button>'],
+       ['2026-06-10','商机输单原因分析','上月输单 6 个，价格不匹配占 55%','<span class="table-tag">已读</span>','<button class="btn btn-sm btn-text">查看</button>'],
+       ['2026-06-05','新增客户情况','上周日均新增 1.5 位客户','<span class="table-tag">已读</span>','<button class="btn btn-sm btn-text">查看</button>']],
+      {total:18})}
+  </div>
 `;
 
 PAGE_RENDERERS['td-ai-analysis'] = () => `
@@ -3411,22 +4755,41 @@ PAGE_RENDERERS['td-ai-analysis'] = () => `
       <div><div class="card-title" style="margin-bottom:0">🤖 AI 数据助理</div><div class="text-sm text-muted">您可以问邮件、线索、客户、商机、订单相关的问题</div></div>
     </div>
     <div class="divider"></div>
+    <div class="card-title">分析范围</div>
+    <div class="flex gap-8 mb-12">
+      <select class="filter-select"><option>全部数据</option><option>我的数据</option><option>本部门</option></select>
+      <select class="filter-select"><option>本月</option><option>本季度</option><option>本年</option><option>自定义</option></select>
+    </div>
     <div class="card-title">推荐问题</div>
     <div class="grid-2">
       ${['上个月各员工发送了多少封邮件？','本月新建线索数量趋势如何？','近3个月客户来源分布','各销售阶段的商机转化率','本季度订单金额排行','不同地区客户的成交率对比'].map(q =>
         `<div class="tree-item" style="border:1px solid var(--border-light);border-radius:var(--radius);margin-bottom:4px;cursor:pointer">${q}</div>`
       ).join('')}
     </div>
+    <div class="card-title mt-12">提问攻略</div>
+    <div class="text-sm text-muted">建议包含时间范围、对象、指标三个要素，例如"本季度各部门成交订单金额对比"。可叠加维度细分到成员、地区、来源等。</div>
     <div class="divider"></div>
     <div class="flex gap-8">
       <input class="filter-input" style="flex:1" placeholder="输入您的分析问题..." />
-      <button class="btn btn-primary">分析</button>
+      <button class="btn btn-primary">生成分析</button>
     </div>
+  </div>
+  <div class="card mb-16">
+    <div class="card-title mb-8">历史分析</div>
+    ${renderTable(['提问时间','分析问题','分析范围','操作'],
+      [['2026-06-20 15:30','本季度各部门成交订单金额对比','本季度 · 全部门','<button class="btn btn-sm btn-text">查看</button>'],
+       ['2026-06-18 10:12','近3个月客户来源分布','近3个月 · 我的数据','<button class="btn btn-sm btn-text">查看</button>'],
+       ['2026-06-15 09:45','各销售阶段的商机转化率','本月 · 本部门','<button class="btn btn-sm btn-text">查看</button>']],
+      {total:12})}
+  </div>
+  <div class="flex-between">
+    <button class="btn">退出</button>
+    <button class="btn btn-primary">生成分析</button>
   </div>
 `;
 
 PAGE_RENDERERS['td-ai-quality'] = () => `
-  <div class="page-header"><h1 class="page-title">AI 批量质检</h1><div class="page-actions"><button class="btn btn-primary">+ 新建质检任务</button></div></div>
+  <div class="page-header"><h1 class="page-title">AI 批量质检</h1><div class="page-actions"><button class="btn btn-primary" onclick="openNewQcTaskModal()">+ 新建质检任务</button></div></div>
   <div class="alert alert-info mb-12">💡 AI 自动质检邮件沟通质量，帮助管理者发现问题并提升团队服务水平</div>
   <div class="stat-cards mb-16">
     <div class="stat-card"><div class="stat-label">待质检邮件</div><div class="stat-value">234</div></div>
@@ -3435,11 +4798,54 @@ PAGE_RENDERERS['td-ai-quality'] = () => `
     <div class="stat-card"><div class="stat-label">平均质量评分</div><div class="stat-value">8.2</div></div>
   </div>
   ${renderTabs([{label:'全部'},{label:'待质检'},{label:'已通过'},{label:'有问题'}])}
-  ${renderTable(['邮件主题','发件人','收件人','发送时间','质检评分','问题类型','状态'],
-    [['Re: Product Inquiry','Bambi','john@buyer.com','2026-06-20','9.2','--','<span class="table-tag success">通过</span>'],
-     ['Price Quotation','Camila','info@trade.de','2026-06-19','6.5','回复不及时、缺少报价细节','<span class="table-tag danger">有问题</span>'],
-     ['Sample Order Confirm','Jade','buyer@mall.us','2026-06-18','8.8','--','<span class="table-tag success">通过</span>']],
+  <div class="filter-bar mb-12">
+    <select class="filter-select"><option>全部执行人</option><option>Bambi</option><option>Camila</option><option>Jade</option></select>
+    <select class="filter-select"><option>全部问题类型</option><option>回复不及时</option><option>缺少报价细节</option><option>用语不当</option></select>
+    <input class="filter-input" type="date" />
+    <button class="btn btn-sm">批量复核</button>
+  </div>
+  ${renderTable(['邮件主题','发件人','收件人','发送时间','质检评分','问题类型','状态','操作'],
+    [['Re: Product Inquiry','Bambi','john@buyer.com','2026-06-20','9.2','--','<span class="table-tag success">通过</span>','<button class="btn btn-sm btn-text" onclick="openQcDetailModal(\'Re: Product Inquiry\')">详情</button>'],
+     ['Price Quotation','Camila','info@trade.de','2026-06-19','6.5','回复不及时、缺少报价细节','<span class="table-tag danger">有问题</span>','<button class="btn btn-sm btn-text" onclick="openQcDetailModal(\'Price Quotation\')">复核</button>'],
+     ['Sample Order Confirm','Jade','buyer@mall.us','2026-06-18','8.8','--','<span class="table-tag success">通过</span>','<button class="btn btn-sm btn-text" onclick="openQcDetailModal(\'Sample Order Confirm\')">详情</button>'],
+     ['Order Delay Notice','Amy','client@abc.com','2026-06-17','5.8','用语不当、缺少歉意','<span class="table-tag danger">有问题</span>','<button class="btn btn-sm btn-text" onclick="openQcDetailModal(\'Order Delay Notice\')">复核</button>']],
     {total:234})}
+`;
+
+function openNewQcTaskModal() {
+  openModal('新建质检任务', `
+    <div class="alert alert-info mb-12">💡 选择质检范围后，AI 将自动对范围内的邮件进行质量评估</div>
+    ${renderFormField('任务名称', 'text', {placeholder:'质检任务名称'})}
+    ${renderFormField('任务范围', 'select', {options:['全部业务员','指定业务员','指定部门']})}
+    <div class="form-row">
+      ${renderFormField('质检时间范围', 'select', {options:['最近7天','最近30天','本月','自定义']})}
+      ${renderFormField('质检维度', 'select', {options:['全部维度','回复时效','报价完整性','沟通语气','专业度']})}
+    </div>
+    ${renderFormField('最低合格评分', 'select', {options:['6.0','7.0','8.0','9.0']})}
+    <div class="text-sm text-muted">将自动质检范围内的 234 封邮件，预计耗时约 5 分钟。</div>
+  `, '<button class="btn" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="closeModal()">开始质检</button>');
+}
+
+function openQcDetailModal(subject) {
+  openModal('质检详情 — ' + subject, `
+    <div class="info-list">
+      <div class="info-item"><span class="info-label">邮件主题</span><span class="info-value">${subject}</span></div>
+      <div class="info-item"><span class="info-label">发件人</span><span class="info-value">Camila</span></div>
+      <div class="info-item"><span class="info-label">收件人</span><span class="info-value">info@trade.de</span></div>
+      <div class="info-item"><span class="info-label">发送时间</span><span class="info-value">2026-06-19</span></div>
+      <div class="info-item"><span class="info-label">质检评分</span><span class="info-value text-danger">6.5 / 10</span></div>
+      <div class="info-item"><span class="info-label">问题类型</span><span class="info-value">回复不及时、缺少报价细节</span></div>
+    </div>
+    <div class="divider"></div>
+    <div class="card-title mb-8">AI 质检分析</div>
+    <div class="text-sm text-muted mb-8">该邮件在客户询盘后 48 小时才回复，超出 24h 标准时效；报价内容缺少运费、交期与最小起订量等关键信息，可能影响客户决策。</div>
+    <div class="card-title mb-8">改进建议</div>
+    <div class="text-sm text-muted">建议在询盘 24h 内首次回复；报价单补充 FOB 价、MOQ、交期、付款方式；开头增加客户称呼，结尾增加 CTA。</div>
+    <div class="divider"></div>
+    ${renderFormField('复核结论', 'select', {options:['确认问题','误报 · 标记为通过']})}
+    ${renderFormField('复核备注', 'textarea', {placeholder:'复核说明...'})}
+  `, '<button class="btn" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="closeModal()">提交复核</button>');
+}
 `;
 
 PAGE_RENDERERS['td-report'] = () => `
@@ -3790,22 +5196,26 @@ PAGE_RENDERERS['ent-fields'] = () => `
 `;
 
 // Enterprise Customer Settings
-PAGE_RENDERERS['ent-customer-settings'] = () => `
-  <div class="page-header"><h1 class="page-title">客户设置</h1></div>
-  ${renderTabs([{label:'客户阶段'},{label:'客户类型'},{label:'公海管理'},{label:'客户跟进规则'},{label:'客户成交规则'},{label:'建档黑名单'},{label:'客户上限'},{label:'客户查重设置'},{label:'动态设置'},{label:'写跟进设置'},{label:'布局设置'},{label:'字段规则'}])}
-  <div class="card">
-    <div class="text-sm text-muted mb-12">按照业务进展阶段划分客户状态，帮助业务员针对性跟进客户，提高成单率。</div>
-    <button class="btn btn-primary btn-sm mb-12">+ 新增阶段</button>
-    ${renderTable(['阶段名称','操作'],
-      [['待跟进','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
-       ['询盘客户','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
-       ['样单客户','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
-       ['成交客户','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
-       ['复购客户','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>']],
-      { total: 5 }
-    )}
-  </div>
-`;
+PAGE_RENDERERS['ent-customer-settings'] = () => {
+  const g = 'entCustSet';
+  const stagePanel = `<div class="card"><div class="text-sm text-muted mb-12">按照业务进展阶段划分客户状态，帮助业务员针对性跟进客户，提高成单率。</div><div class="flex-between mb-12"><span class="card-title" style="margin-bottom:0">客户阶段</span><button class="btn btn-sm btn-primary">+ 新增阶段</button></div>${renderTable(['阶段名称','排序','默认','操作'],[['待跟进','1','是','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],['询盘客户','2','否','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],['样单客户','3','否','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],['成交客户','4','否','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],['复购客户','5','否','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>']],{total:5})}</div>`;
+  const typePanel = `<div class="card"><div class="text-sm text-muted mb-12">对客户进行分类管理，可用于分层运营和筛选。</div><div class="flex-between mb-12"><span class="card-title" style="margin-bottom:0">客户类型</span><button class="btn btn-sm btn-primary">+ 新增类型</button></div>${renderTable(['类型名称','排序','操作'],[['VIP 客户','1','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],['普通客户','2','<button class="btn btn-sm btn-text">编辑</button>'],['潜在客户','3','<button class="btn btn-sm btn-text">编辑</button>']],{total:3})}</div>`;
+  const publicPanel = `<div class="card"><div class="text-sm text-muted mb-12">配置公海客户回收规则与分组。</div><div class="grid-2">${renderFormField('公海回收规则','select',{options:['90天未成交回收','180天未联系回收','不自动回收']})}${renderFormField('公海分组','select',{options:['默认公海分组','沉睡客户分组']})}${renderFormField('领取上限(个/天)','text',{value:'50'})}${renderFormField('领取冷却(小时)','text',{value:'24'})}</div><div class="mt-12"><button class="btn btn-primary btn-sm">保存公海规则</button></div></div>`;
+  const followPanel = `<div class="card"><div class="text-sm text-muted mb-12">配置客户跟进频率与超时提醒。</div><div class="grid-2">${renderFormField('跟进频率提醒','select',{options:['开启','关闭']})}${renderFormField('超时未跟进(天)','text',{value:'7'})}${renderFormField('提醒方式','select',{options:['站内消息','邮件','不提醒']})}${renderFormField('免跟进阶段','select',{options:['成交客户','复购客户']})}</div><div class="mt-12"><button class="btn btn-primary btn-sm">保存跟进规则</button></div></div>`;
+  const dealPanel = `<div class="card"><div class="text-sm text-muted mb-12">定义客户成交判定规则。</div><div class="grid-2">${renderFormField('成交判定依据','select',{options:['签订销售订单','回款到账','样品单']})}${renderFormField('自动标记成交','select',{options:['是','否']})}${renderFormField('成交客户保护期(天)','text',{value:'365'})}${renderFormField('复购判定周期(天)','text',{value:'180'})}</div><div class="mt-12"><button class="btn btn-primary btn-sm">保存成交规则</button></div></div>`;
+  const blacklistPanel = `<div class="card"><div class="text-sm text-muted mb-12">加入黑名单的邮箱/公司不再建档或收件。</div><div class="flex-between mb-12"><span class="card-title" style="margin-bottom:0">建档黑名单</span><button class="btn btn-sm btn-primary">+ 新增</button></div>${renderTable(['类型','内容','添加时间','操作'],[['邮箱','spam@bad.com','2026-05-01','<button class="btn btn-sm btn-text" style="color:var(--danger)">移除</button>'],['公司','Scam Corp','2026-04-12','<button class="btn btn-sm btn-text" style="color:var(--danger)">移除</button>']],{total:2})}</div>`;
+  const limitPanel = `<div class="card"><div class="text-sm text-muted mb-12">限制业务员可拥有的私海客户上限。</div><div class="grid-2">${renderFormField('私海客户上限','text',{value:'500'})}${renderFormField('超额处理','select',{options:['禁止新增','提示并允许']})}${renderFormField('按职级差异化','select',{options:['是','否']})}${renderFormField('超额提醒','select',{options:['开启','关闭']})}</div><div class="mt-12"><button class="btn btn-primary btn-sm">保存上限设置</button></div></div>`;
+  const dedupPanel = `<div class="card"><div class="text-sm text-muted mb-12">配置客户查重规则，避免重复建档。</div><div class="grid-2">${renderFormField('查重字段','select',{options:['公司名称','邮箱后缀','联系电话']})}${renderFormField('查重范围','select',{options:['全库','我的客户','私海+公海']})}${renderFormField('重复处理','select',{options:['提示人工合并','自动合并','阻止建档']})}${renderFormField('模糊匹配','select',{options:['开启','关闭']})}</div><div class="mt-12"><button class="btn btn-primary btn-sm">保存查重设置</button></div></div>`;
+  const dynPanel = `<div class="card"><div class="text-sm text-muted mb-12">配置客户动态记录范围与显示。</div><div class="grid-2">${renderFormField('记录动态类型','select',{options:['全部','邮件+跟进','仅跟进']})}${renderFormField('AI 动态生成','select',{options:['开启','关闭']})}${renderFormField('动态保留时长','select',{options:['永久','1年','6个月']})}${renderFormField('同步邮件动态','select',{options:['开启','关闭']})}</div><div class="mt-12"><button class="btn btn-primary btn-sm">保存动态设置</button></div></div>`;
+  const writeFollowPanel = `<div class="card"><div class="text-sm text-muted mb-12">配置写跟进的模板与必填项。</div><div class="grid-2">${renderFormField('跟进模板','select',{options:['默认模板','外呼模板','拜访模板']})}${renderFormField('必填跟进方式','select',{options:['否','是']})}${renderFormField('必填下次跟进时间','select',{options:['否','是']})}${renderFormField('AI 写跟进','select',{options:['开启','关闭']})}</div><div class="mt-12"><button class="btn btn-primary btn-sm">保存写跟进设置</button></div></div>`;
+  const layoutPanel = `<div class="card"><div class="text-sm text-muted mb-12">配置客户详情页布局与卡片显示。</div>${renderTable(['布局区域','是否显示','操作'],[['客户主卡','<span class="table-tag success">显示</span>','<button class="btn btn-sm btn-text">编辑</button>'],['AI 客户分析','<span class="table-tag success">显示</span>','<button class="btn btn-sm btn-text">编辑</button>'],['关联联系人','<span class="table-tag success">显示</span>','<button class="btn btn-sm btn-text">编辑</button>'],['进行中商机','<span class="table-tag">隐藏</span>','<button class="btn btn-sm btn-text">编辑</button>']],{total:4})}</div>`;
+  const fieldRulePanel = `<div class="card"><div class="text-sm text-muted mb-12">配置客户字段的必填、显隐与联动规则。</div>${renderTable(['字段名称','字段类型','必填','显示','操作'],[['公司名称','文本','是','是','<button class="btn btn-sm btn-text">编辑</button>'],['国家地区','下拉','否','是','<button class="btn btn-sm btn-text">编辑</button>'],['客户等级','下拉','否','是','<button class="btn btn-sm btn-text">编辑</button>'],['广告UTM','文本','否','是','<button class="btn btn-sm btn-text">编辑</button>']],{total:45})}</div>`;
+  return `
+    <div class="page-header"><h1 class="page-title">客户设置</h1></div>
+    ${renderTabs([{label:'客户阶段'},{label:'客户类型'},{label:'公海管理'},{label:'客户跟进规则'},{label:'客户成交规则'},{label:'建档黑名单'},{label:'客户上限'},{label:'客户查重设置'},{label:'动态设置'},{label:'写跟进设置'},{label:'布局设置'},{label:'字段规则'}], 0, g)}
+    ${renderTabPanels(g, [stagePanel,typePanel,publicPanel,followPanel,dealPanel,blacklistPanel,limitPanel,dedupPanel,dynPanel,writeFollowPanel,layoutPanel,fieldRulePanel])}
+  `;
+};
 
 // Enterprise management pages with proper content
 PAGE_RENDERERS['ent-translate'] = () => `
@@ -3836,31 +5246,33 @@ PAGE_RENDERERS['ent-field-display'] = () => `
   </div>
 `;
 
-PAGE_RENDERERS['ent-lead-settings'] = () => `
-  <div class="page-header"><h1 class="page-title">线索设置</h1></div>
-  ${renderTabs([{label:'线索状态'},{label:'线索来源'},{label:'线索标签'},{label:'分配规则'},{label:'评分规则'},{label:'转化规则'}])}
-  <div class="card">
-    <div class="flex-between mb-12"><span class="card-title" style="margin-bottom:0">线索状态管理</span><button class="btn btn-sm btn-primary">+ 新增状态</button></div>
-    ${renderTable(['状态名称','排序','默认','操作'],
-      [['待处理','1','是','<button class="btn btn-sm btn-text">编辑</button>'],
-       ['完善信息','2','否','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
-       ['初步触达','3','否','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
-       ['联系互动','4','否','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>']],
-      {total:4})}
-  </div>
-`;
+PAGE_RENDERERS['ent-lead-settings'] = () => {
+  const g = 'entLeadSet';
+  const statusPanel = `<div class="card"><div class="flex-between mb-12"><span class="card-title" style="margin-bottom:0">线索状态管理</span><button class="btn btn-sm btn-primary">+ 新增状态</button></div>${renderTable(['状态名称','排序','默认','操作'],[['待处理','1','是','<button class="btn btn-sm btn-text">编辑</button>'],['完善信息','2','否','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],['初步触达','3','否','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],['联系互动','4','否','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>']],{total:4})}</div>`;
+  const sourcePanel = `<div class="card"><div class="flex-between mb-12"><span class="card-title" style="margin-bottom:0">线索来源管理</span><button class="btn btn-sm btn-primary">+ 新增来源</button></div>${renderTable(['来源名称','来源分类','排序','操作'],[['主动开发','渠道获客','1','<button class="btn btn-sm btn-text">编辑</button>'],['官网询盘','线上询盘','2','<button class="btn btn-sm btn-text">编辑</button>'],['阿里巴巴','线上询盘','3','<button class="btn btn-sm btn-text">编辑</button>'],['展会','线下','4','<button class="btn btn-sm btn-text">编辑</button>']],{total:4})}</div>`;
+  const tagPanel = `<div class="card"><div class="flex-between mb-12"><span class="card-title" style="margin-bottom:0">线索标签管理</span><button class="btn btn-sm btn-primary">+ 新增标签</button></div>${renderTable(['标签名称','标签颜色','使用数','操作'],[['高意向','红','15','<button class="btn btn-sm btn-text">编辑</button>'],['新询盘','蓝','30','<button class="btn btn-sm btn-text">编辑</button>'],['活跃客户','绿','22','<button class="btn btn-sm btn-text">编辑</button>']],{total:3})}</div>`;
+  const assignPanel = `<div class="card"><div class="text-sm text-muted mb-12">配置线索自动分配规则。</div><div class="grid-2">${renderFormField('分配方式','select',{options:['轮询分配','按区域分配','按职级分配','手动分配']})}${renderFormField('默认接收人','select',{options:['张伟','李娜','Bambi']})}${renderFormField('超额提醒','select',{options:['开启','关闭']})}${renderFormField('分配范围','select',{options:['全部线索','未分配线索']})}</div><div class="mt-12"><button class="btn btn-primary btn-sm">保存分配规则</button></div></div>`;
+  const scorePanel = `<div class="card"><div class="text-sm text-muted mb-12">配置线索评分规则，自动计算意向分。</div>${renderTable(['评分维度','条件','分值','操作'],[['邮件打开','打开任意邮件','+10','<button class="btn btn-sm btn-text">编辑</button>'],['询盘行为','提交询盘表单','+30','<button class="btn btn-sm btn-text">编辑</button>'],['网站访问','浏览产品页','+5','<button class="btn btn-sm btn-text">编辑</button>']],{total:3})}</div>`;
+  const convertPanel = `<div class="card"><div class="text-sm text-muted mb-12">配置线索转化为客户的规则与字段映射。</div><div class="grid-2">${renderFormField('转化条件','select',{options:['手动转化','达到评分阈值自动转化']})}${renderFormField('转化阈值','text',{value:'60'})}${renderFormField('转化后线索状态','select',{options:['已完成','删除']})}${renderFormField('自动建联系人','select',{options:['是','否']})}</div><div class="mt-12"><button class="btn btn-primary btn-sm">保存转化规则</button></div></div>`;
+  return `
+    <div class="page-header"><h1 class="page-title">线索设置</h1></div>
+    ${renderTabs([{label:'线索状态'},{label:'线索来源'},{label:'线索标签'},{label:'分配规则'},{label:'评分规则'},{label:'转化规则'}], 0, g)}
+    ${renderTabPanels(g, [statusPanel,sourcePanel,tagPanel,assignPanel,scorePanel,convertPanel])}
+  `;
+};
 
-PAGE_RENDERERS['ent-biz-settings'] = () => `
-  <div class="page-header"><h1 class="page-title">商机设置</h1></div>
-  ${renderTabs([{label:'销售流程'},{label:'输单原因'},{label:'商机标签'},{label:'布局设置'}])}
-  <div class="card">
-    <div class="flex-between mb-12"><span class="card-title" style="margin-bottom:0">销售流程管理</span><button class="btn btn-sm btn-primary">+ 新建销售流程</button></div>
-    ${renderTable(['流程名称','阶段数','商机数','创建时间','状态','操作'],
-      [['开发销售标准流程','6','3,200','2024-01-15','<span class="table-tag success">启用中</span>','<button class="btn btn-sm btn-text">编辑</button>'],
-       ['维护销售标准流程','8','1,986','2024-01-15','<span class="table-tag success">启用中</span>','<button class="btn btn-sm btn-text">编辑</button>']],
-      {total:2})}
-  </div>
-`;
+PAGE_RENDERERS['ent-biz-settings'] = () => {
+  const g = 'entBizSet';
+  const flowPanel = `<div class="card"><div class="flex-between mb-12"><span class="card-title" style="margin-bottom:0">销售流程管理</span><button class="btn btn-sm btn-primary">+ 新建销售流程</button></div>${renderTable(['流程名称','阶段数','商机数','创建时间','状态','操作'],[['开发销售标准流程','6','3,200','2024-01-15','<span class="table-tag success">启用中</span>','<button class="btn btn-sm btn-text">编辑</button>'],['维护销售标准流程','8','1,986','2024-01-15','<span class="table-tag success">启用中</span>','<button class="btn btn-sm btn-text">编辑</button>']],{total:2})}</div>`;
+  const lostPanel = `<div class="card"><div class="flex-between mb-12"><span class="card-title" style="margin-bottom:0">输单原因管理</span><button class="btn btn-sm btn-primary">+ 新增原因</button></div>${renderTable(['原因名称','分类','使用次数','操作'],[['价格过高','价格','128','<button class="btn btn-sm btn-text">编辑</button>'],['选择竞品','竞品','95','<button class="btn btn-sm btn-text">编辑</button>'],['需求取消','客户','42','<button class="btn btn-sm btn-text">编辑</button>']],{total:3})}</div>`;
+  const tagPanel = `<div class="card"><div class="flex-between mb-12"><span class="card-title" style="margin-bottom:0">商机标签管理</span><button class="btn btn-sm btn-primary">+ 新增标签</button></div>${renderTable(['标签名称','颜色','使用数','操作'],[['高意向','红','56','<button class="btn btn-sm btn-text">编辑</button>'],['复购机会','蓝','34','<button class="btn btn-sm btn-text">编辑</button>'],['紧急','橙','18','<button class="btn btn-sm btn-text">编辑</button>']],{total:3})}</div>`;
+  const layoutPanel = `<div class="card"><div class="text-sm text-muted mb-12">配置商机详情页布局与字段显示。</div>${renderTable(['布局区域','是否显示','操作'],[['商机主卡','<span class="table-tag success">显示</span>','<button class="btn btn-sm btn-text">编辑</button>'],['阶段进度条','<span class="table-tag success">显示</span>','<button class="btn btn-sm btn-text">编辑</button>'],['交易 Tab','<span class="table-tag success">显示</span>','<button class="btn btn-sm btn-text">编辑</button>'],['关联联系人','<span class="table-tag success">显示</span>','<button class="btn btn-sm btn-text">编辑</button>']],{total:4})}</div>`;
+  return `
+    <div class="page-header"><h1 class="page-title">商机设置</h1></div>
+    ${renderTabs([{label:'销售流程'},{label:'输单原因'},{label:'商机标签'},{label:'布局设置'}], 0, g)}
+    ${renderTabPanels(g, [flowPanel,lostPanel,tagPanel,layoutPanel])}
+  `;
+};
 
 PAGE_RENDERERS['ent-source-settings'] = () => `
   <div class="page-header"><h1 class="page-title">来源设置</h1></div>
@@ -3903,33 +5315,32 @@ PAGE_RENDERERS['ent-dedup-settings'] = () => `
   </div>
 `;
 
-PAGE_RENDERERS['ent-product-settings'] = () => `
-  <div class="page-header"><h1 class="page-title">产品设置</h1></div>
-  ${renderTabs([{label:'产品分组设置'},{label:'产品同步'},{label:'产品字段设置'},{label:'产品规格设置'},{label:'布局设置'}])}
-  <div class="card">
-    <div class="flex-between mb-12"><span class="card-title" style="margin-bottom:0">产品分组管理</span><div class="btn-group"><button class="btn btn-sm">导入分组</button><button class="btn btn-sm btn-primary">+ 新建分组</button></div></div>
-    <div class="text-sm text-muted mb-12">产品分组可以对所选产品线的产品进行分类整理，便于业务员检索。</div>
-    ${renderTable(['分组名称','可见范围','操作'],
-      [['男块','全部','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text">新建下级分组</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
-       ['女装','全部','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text">新建下级分组</button>'],
-       ['辅料','全部','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text">新建下级分组</button>'],
-       ['未分组','全部','--']],
-      {total:4})}
-  </div>
-`;
+PAGE_RENDERERS['ent-product-settings'] = () => {
+  const g = 'entProdSet';
+  const groupPanel = `<div class="card"><div class="flex-between mb-12"><span class="card-title" style="margin-bottom:0">产品分组管理</span><div class="btn-group"><button class="btn btn-sm">导入分组</button><button class="btn btn-sm btn-primary">+ 新建分组</button></div></div><div class="text-sm text-muted mb-12">产品分组可以对所选产品线的产品进行分类整理，便于业务员检索。</div>${renderTable(['分组名称','可见范围','操作'],[['男块','全部','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text">新建下级分组</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],['女装','全部','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text">新建下级分组</button>'],['辅料','全部','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text">新建下级分组</button>'],['未分组','全部','--']],{total:4})}</div>`;
+  const syncPanel = `<div class="card"><div class="text-sm text-muted mb-12">配置产品与外部平台（阿里国际站/独立站）的同步规则。</div><div class="grid-2">${renderFormField('同步平台','select',{options:['阿里国际站','独立站','不同步']})}${renderFormField('同步方向','select',{options:['双向','仅上行','仅下行']})}${renderFormField('自动同步','select',{options:['开启','关闭']})}${renderFormField('同步频率','select',{options:['实时','每小时','每天']})}</div><div class="mt-12"><button class="btn btn-primary btn-sm">保存同步设置</button> <button class="btn btn-sm" onclick="alert('立即同步')">立即同步</button></div></div>`;
+  const fieldPanel = `<div class="card"><div class="text-sm text-muted mb-12">配置产品字段的必填、显隐与排序。</div>${renderTable(['字段名称','字段类型','必填','显示','操作'],[['产品名称','文本','是','是','<button class="btn btn-sm btn-text">编辑</button>'],['产品编号','文本','否','是','<button class="btn btn-sm btn-text">编辑</button>'],['离岸价','金额','否','是','<button class="btn btn-sm btn-text">编辑</button>'],['海关编码','文本','否','是','<button class="btn btn-sm btn-text">编辑</button>']],{total:18})}</div>`;
+  const specPanel = `<div class="card"><div class="text-sm text-muted mb-12">配置多规格产品的规格名与规格值模板。</div><div class="flex-between mb-12"><span class="card-title" style="margin-bottom:0">规格模板</span><button class="btn btn-sm btn-primary">+ 新增规格</button></div>${renderTable(['规格名','规格值','使用产品数','操作'],[['颜色','#1,#1B,#2,#4,#6','120','<button class="btn btn-sm btn-text">编辑</button>'],['长度','6,8,10,12,14 inches','86','<button class="btn btn-sm btn-text">编辑</button>'],['尺寸','6*1,6*2,6*1.5','45','<button class="btn btn-sm btn-text">编辑</button>']],{total:3})}</div>`;
+  const layoutPanel = `<div class="card"><div class="text-sm text-muted mb-12">配置产品详情页与列表页布局。</div>${renderTable(['布局区域','是否显示','操作'],[['产品主图','<span class="table-tag success">显示</span>','<button class="btn btn-sm btn-text">编辑</button>'],['产品规格','<span class="table-tag success">显示</span>','<button class="btn btn-sm btn-text">编辑</button>'],['配件清单','<span class="table-tag success">显示</span>','<button class="btn btn-sm btn-text">编辑</button>'],['报关信息','<span class="table-tag">隐藏</span>','<button class="btn btn-sm btn-text">编辑</button>']],{total:4})}</div>`;
+  return `
+    <div class="page-header"><h1 class="page-title">产品设置</h1></div>
+    ${renderTabs([{label:'产品分组设置'},{label:'产品同步'},{label:'产品字段设置'},{label:'产品规格设置'},{label:'布局设置'}], 0, g)}
+    ${renderTabPanels(g, [groupPanel,syncPanel,fieldPanel,specPanel,layoutPanel])}
+  `;
+};
 
-PAGE_RENDERERS['ent-order-settings'] = () => `
-  <div class="page-header"><h1 class="page-title">销售订单设置</h1></div>
-  ${renderTabs([{label:'订单编号规则'},{label:'订单字段设置'},{label:'订单状态'},{label:'布局设置'}])}
-  <div class="card">
-    <div class="card-title">订单编号规则</div>
-    ${renderFormField('编号前缀', 'text', {value:'2026BONO-'})}
-    ${renderFormField('编号格式', 'select', {options:['年份+前缀+序号','前缀+日期+序号','自定义']})}
-    ${renderFormField('序号位数', 'select', {options:['4位','5位','6位']})}
-    <div class="text-sm text-muted mt-12">预览: 2026BONO-0001</div>
-    <button class="btn btn-primary mt-12">保存设置</button>
-  </div>
-`;
+PAGE_RENDERERS['ent-order-settings'] = () => {
+  const g = 'entOrderSet';
+  const noPanel = `<div class="card"><div class="card-title">订单编号规则</div>${renderFormField('编号前缀', 'text', {value:'2026BONO-'})}${renderFormField('编号格式', 'select', {options:['年份+前缀+序号','前缀+日期+序号','自定义']})}${renderFormField('序号位数', 'select', {options:['4位','5位','6位']})}<div class="text-sm text-muted mt-12">预览: 2026BONO-0001</div><button class="btn btn-primary mt-12">保存设置</button></div>`;
+  const fieldPanel = `<div class="card"><div class="text-sm text-muted mb-12">配置销售订单字段的必填与显隐。</div>${renderTable(['字段名称','字段类型','必填','显示','操作'],[['订单名称','文本','是','是','<button class="btn btn-sm btn-text">编辑</button>'],['客户','关联','是','是','<button class="btn btn-sm btn-text">编辑</button>'],['订单金额','金额','是','是','<button class="btn btn-sm btn-text">编辑</button>'],['备注','多行文本','否','是','<button class="btn btn-sm btn-text">编辑</button>']],{total:22})}</div>`;
+  const statusPanel = `<div class="card"><div class="flex-between mb-12"><span class="card-title" style="margin-bottom:0">订单状态管理</span><button class="btn btn-sm btn-primary">+ 新增状态</button></div>${renderTable(['状态名称','排序','是否启用','操作'],[['草稿','1','<span class="table-tag success">启用</span>','<button class="btn btn-sm btn-text">编辑</button>'],['待收款','2','<span class="table-tag success">启用</span>','<button class="btn btn-sm btn-text">编辑</button>'],['待发货','3','<span class="table-tag success">启用</span>','<button class="btn btn-sm btn-text">编辑</button>'],['交易成功','4','<span class="table-tag success">启用</span>','<button class="btn btn-sm btn-text">编辑</button>']],{total:4})}</div>`;
+  const layoutPanel = `<div class="card"><div class="text-sm text-muted mb-12">配置订单详情页 tab 与布局。</div>${renderTable(['Tab 名称','是否显示','操作'],[['订单详情','<span class="table-tag success">显示</span>','<button class="btn btn-sm btn-text">编辑</button>'],['回款单','<span class="table-tag success">显示</span>','<button class="btn btn-sm btn-text">编辑</button>'],['备货','<span class="table-tag success">显示</span>','<button class="btn btn-sm btn-text">编辑</button>'],['出运','<span class="table-tag success">显示</span>','<button class="btn btn-sm btn-text">编辑</button>']],{total:8})}</div>`;
+  return `
+    <div class="page-header"><h1 class="page-title">销售订单设置</h1></div>
+    ${renderTabs([{label:'订单编号规则'},{label:'订单字段设置'},{label:'订单状态'},{label:'布局设置'}], 0, g)}
+    ${renderTabPanels(g, [noPanel,fieldPanel,statusPanel,layoutPanel])}
+  `;
+};
 
 PAGE_RENDERERS['ent-rate-settings'] = () => `
   <div class="page-header"><h1 class="page-title">汇率设置</h1><div class="page-actions"><button class="btn btn-sm">同步实时汇率</button><button class="btn btn-primary">+ 新增币种</button></div></div>

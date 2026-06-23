@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OKKI CRM - H5 原型</title>
-  <link rel="stylesheet" href="css/style.css?v=20260623a">
+  <link rel="stylesheet" href="css/style.css?v=20260623d">
 </head>
 <body>
   <!-- Top Bar -->
@@ -14,19 +14,24 @@
       OKKI CRM
     </div>
     <div class="topbar-search">
-      <select id="searchType">
-        <option>全部</option><option>客户</option><option>线索</option><option>商机</option><option>成员</option>
-      </select>
-      <input type="text" placeholder="请输入搜索关键字" />
+      <select id="searchType" onchange="updateSearchType(this.value)"></select>
+      <input type="text" id="globalSearchInput" placeholder="请输入搜索关键字" oninput="onGlobalSearchInput(this.value)" onkeydown="if(event.key==='Enter')doGlobalSearch()" autocomplete="off" />
+      <div class="topbar-search-result" id="globalSearchResult" style="display:none"></div>
     </div>
     <div class="topbar-actions">
-      <button class="topbar-btn">TM</button>
-      <button class="topbar-btn">消息<span class="topbar-badge">99+</span></button>
-      <button class="topbar-btn">客服</button>
-      <button class="topbar-btn">帮助</button>
-      <div class="topbar-avatar">U</div>
+      <button class="topbar-btn" onclick="toggleTopbarPanel('tm', event)">TM</button>
+      <button class="topbar-btn" onclick="toggleTopbarPanel('msg', event)">消息<span class="topbar-badge">99+</span></button>
+      <button class="topbar-btn" onclick="toggleTopbarPanel('cs', event)">客服</button>
+      <button class="topbar-btn" onclick="toggleTopbarPanel('help', event)">帮助</button>
+      <div class="topbar-avatar" onclick="toggleTopbarPanel('user', event)">U</div>
     </div>
   </div>
+  <!-- Topbar Dropdown Panels -->
+  <div class="topbar-panel" id="topbarPanel-tm" style="display:none"></div>
+  <div class="topbar-panel" id="topbarPanel-msg" style="display:none"></div>
+  <div class="topbar-panel" id="topbarPanel-cs" style="display:none"></div>
+  <div class="topbar-panel" id="topbarPanel-help" style="display:none"></div>
+  <div class="topbar-panel" id="topbarPanel-user" style="display:none"></div>
 
   <!-- App Container -->
   <div id="app">
@@ -60,6 +65,6 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=20260623a"></script>
+  <script src="js/app.js?v=20260623d"></script>
 </body>
 </html>
