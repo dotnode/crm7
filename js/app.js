@@ -2727,104 +2727,106 @@ PAGE_RENDERERS['customers-detail'] = () => {
         <button class="btn" onclick="openCustomerMoreMenu(this)">更多 ▾</button>
       </div>
     </div>
-    <div class="detail-header">
-      <div class="detail-name">
-        <span class="table-tag primary">私海客户</span>
-        Bono Hair International
-        <button class="btn btn-sm btn-icon" onclick="this.textContent=this.textContent==='☆'?'★':'☆'">☆</button>
-      </div>
-      <div class="detail-meta">
-        <span class="detail-meta-item">🏢 编号: 116113</span>
-        <span class="detail-meta-item">🌍 德国 · 欧洲</span>
-        <span class="detail-meta-item">🕐 UTC+1 (柏林时间 <span id="custTzTime"></span>)</span>
-        <span class="detail-meta-item">👤 跟进人: Bambi</span>
-        <span class="detail-meta-item">📊 客户阶段: <span class="table-tag primary">询盘客户</span></span>
-        <span class="detail-meta-item">🏷 标签: <span class="table-tag">行业相关性弱</span></span>
-        <span class="detail-meta-item">🌊 公海分组: 公共公海分组</span>
-        <span class="detail-meta-item">📁 客户分组: VIP 欧洲客户</span>
-        <span class="detail-meta-item">💰 客户等级: B</span>
-        <span class="detail-meta-item">📅 创建: 2025-03-21</span>
-      </div>
-    </div>
-    <div class="cust-key-stats-card">
-      <div class="card-title">关键联系信息</div>
-      <div class="cust-key-row"><span class="cust-key-label">联系信息数量</span><span class="cust-key-val">3</span></div>
-      <div class="cust-key-row"><span class="cust-key-label">未联系天数</span><span class="cust-key-val text-danger">5</span></div>
-      <div class="cust-key-row"><span class="cust-key-label">收到邮件/消息次数</span><span class="cust-key-val">8</span></div>
-      <div class="cust-key-row"><span class="cust-key-label">打开邮件/EDM次数</span><span class="cust-key-val">2</span></div>
-      <div class="cust-key-row"><span class="cust-key-label">转移次数</span><span class="cust-key-val">1</span></div>
-      <div class="cust-key-row"><span class="cust-key-label">移入公海次数</span><span class="cust-key-val text-success">0</span></div>
-    </div>
-    <div class="cust-contacts-strip">
-      <div class="cust-contact-panel">
-        <div class="cust-contact-head">
-          <span class="cust-contact-name">Erik Kirste</span>
-          <span class="contact-tag" style="background:var(--success-light);color:var(--success)">主</span>
+    <div class="detail-page cust-detail">
+      <div class="detail-sidebar cust-detail-side">
+        <div class="detail-header">
+          <div class="detail-name">
+            <span class="table-tag primary">私海客户</span>
+            Bono Hair International
+            <button class="btn btn-sm btn-icon" onclick="this.textContent=this.textContent==='☆'?'★':'☆'">☆</button>
+          </div>
+          <div class="detail-meta">
+            <span class="detail-meta-item">🏢 编号: 116113</span>
+            <span class="detail-meta-item">🌍 德国 · 欧洲</span>
+            <span class="detail-meta-item">🕐 UTC+1 (柏林时间 <span id="custTzTime"></span>)</span>
+            <span class="detail-meta-item">👤 跟进人: Bambi</span>
+            <span class="detail-meta-item">📊 客户阶段: <span class="table-tag primary">询盘客户</span></span>
+            <span class="detail-meta-item">🏷 标签: <span class="table-tag">行业相关性弱</span></span>
+            <span class="detail-meta-item">🌊 公海分组: 公共公海分组</span>
+            <span class="detail-meta-item">📁 客户分组: VIP 欧洲客户</span>
+            <span class="detail-meta-item">💰 客户等级: B</span>
+            <span class="detail-meta-item">📅 创建: 2025-03-21</span>
+          </div>
         </div>
-        <div class="cust-contact-sub">写信 3 次，成功 2 次</div>
-        <div class="cust-contact-fields">
-          <div class="cust-cf"><span class="cust-cf-label">邮箱</span><span class="cust-cf-val"><a class="text-primary">kirste.erik@gmail.com</a></span></div>
-          <div class="cust-cf"><span class="cust-cf-label">社交平台</span><span class="cust-cf-val">+49 176 8823 4456<br><a class="text-primary text-sm">WhatsApp</a></span></div>
-          <div class="cust-cf"><span class="cust-cf-label">性别</span><span class="cust-cf-val">男</span></div>
-          <div class="cust-cf"><span class="cust-cf-label">职位</span><span class="cust-cf-val">采购总监</span></div>
-        </div>
-        <div class="flex gap-8 mt-8">
-          <button class="btn btn-sm" onclick="navigateTo('mail','mail-compose')">✉ 写邮件</button>
-          <button class="btn btn-sm btn-text" onclick="openContactDetailModal('Erik Kirste')">详情</button>
-        </div>
-      </div>
-      <div class="cust-contact-panel">
-        <div class="cust-contact-head">
-          <span class="cust-contact-name">Lisa Weber</span>
-          <span class="contact-tag">采购</span>
-        </div>
-        <div class="cust-contact-sub">写信 1 次，成功 1 次</div>
-        <div class="cust-contact-fields">
-          <div class="cust-cf"><span class="cust-cf-label">邮箱</span><span class="cust-cf-val"><a class="text-primary">lisa.w@bonohair.com</a></span></div>
-          <div class="cust-cf"><span class="cust-cf-label">社交平台</span><span class="cust-cf-val">+49 176 9912 3378<br><a class="text-primary text-sm">LinkedIn: lisa-weber-bono</a></span></div>
-          <div class="cust-cf"><span class="cust-cf-label">性别</span><span class="cust-cf-val">女</span></div>
-          <div class="cust-cf"><span class="cust-cf-label">职位</span><span class="cust-cf-val">采购专员</span></div>
-        </div>
-        <div class="flex gap-8 mt-8">
-          <button class="btn btn-sm" onclick="navigateTo('mail','mail-compose')">✉ 写邮件</button>
-          <button class="btn btn-sm btn-text" onclick="openContactDetailModal('Lisa Weber')">详情</button>
-        </div>
-      </div>
-      <div class="cust-contact-panel">
-        <div class="cust-contact-head">
-          <span class="cust-contact-name">Thomas Braun</span>
-          <span class="contact-tag" style="background:var(--warning-light);color:#92400e">技术</span>
-        </div>
-        <div class="cust-contact-sub">写信 0 次，成功 0 次</div>
-        <div class="cust-contact-fields">
-          <div class="cust-cf"><span class="cust-cf-label">邮箱</span><span class="cust-cf-val"><a class="text-primary">t.braun@bonohair.com</a></span></div>
-          <div class="cust-cf"><span class="cust-cf-label">社交平台</span><span class="cust-cf-val">--</span></div>
-          <div class="cust-cf"><span class="cust-cf-label">性别</span><span class="cust-cf-val">男</span></div>
-          <div class="cust-cf"><span class="cust-cf-label">职位</span><span class="cust-cf-val">技术经理</span></div>
-        </div>
-        <div class="flex gap-8 mt-8">
-          <button class="btn btn-sm" onclick="navigateTo('mail','mail-compose')">✉ 写邮件</button>
-          <button class="btn btn-sm btn-text" onclick="openContactDetailModal('Thomas Braun')">详情</button>
-        </div>
-      </div>
-    </div>
-    <div class="detail-page">
-      <div class="detail-main">
-        <div class="card mb-12">
+        <div class="detail-card">
           <div class="card-title">AI 客户分析 <span class="ai-badge">AI</span></div>
           <div class="text-sm text-muted">数据不足，暂无法生成完整分析。持续跟进后将自动生成客户分析。</div>
           <a class="text-primary text-sm" onclick="switchTab('${mainTabId}',4)">查看完整分析 →</a>
         </div>
+        <div class="cust-key-stats-card">
+          <div class="card-title">关键联系信息</div>
+          <div class="cust-key-row"><span class="cust-key-label">联系信息数量</span><span class="cust-key-val">3</span></div>
+          <div class="cust-key-row"><span class="cust-key-label">未联系天数</span><span class="cust-key-val text-danger">5</span></div>
+          <div class="cust-key-row"><span class="cust-key-label">收到邮件/消息次数</span><span class="cust-key-val">8</span></div>
+          <div class="cust-key-row"><span class="cust-key-label">打开邮件/EDM次数</span><span class="cust-key-val">2</span></div>
+          <div class="cust-key-row"><span class="cust-key-label">转移次数</span><span class="cust-key-val">1</span></div>
+          <div class="cust-key-row"><span class="cust-key-label">移入公海次数</span><span class="cust-key-val text-success">0</span></div>
+        </div>
+        <div class="cust-contacts-strip">
+          <div class="cust-contact-panel">
+            <div class="cust-contact-head">
+              <span class="cust-contact-name">Erik Kirste</span>
+              <span class="contact-tag" style="background:var(--success-light);color:var(--success)">主</span>
+            </div>
+            <div class="cust-contact-sub">写信 3 次，成功 2 次</div>
+            <div class="cust-contact-fields">
+              <div class="cust-cf"><span class="cust-cf-label">邮箱</span><span class="cust-cf-val"><a class="text-primary">kirste.erik@gmail.com</a></span></div>
+              <div class="cust-cf"><span class="cust-cf-label">社交平台</span><span class="cust-cf-val">+49 176 8823 4456<br><a class="text-primary text-sm">WhatsApp</a></span></div>
+              <div class="cust-cf"><span class="cust-cf-label">性别</span><span class="cust-cf-val">男</span></div>
+              <div class="cust-cf"><span class="cust-cf-label">职位</span><span class="cust-cf-val">采购总监</span></div>
+            </div>
+            <div class="flex gap-8 mt-8">
+              <button class="btn btn-sm" onclick="navigateTo('mail','mail-compose')">✉ 写邮件</button>
+              <button class="btn btn-sm btn-text" onclick="openContactDetailModal('Erik Kirste')">详情</button>
+            </div>
+          </div>
+          <div class="cust-contact-panel">
+            <div class="cust-contact-head">
+              <span class="cust-contact-name">Lisa Weber</span>
+              <span class="contact-tag">采购</span>
+            </div>
+            <div class="cust-contact-sub">写信 1 次，成功 1 次</div>
+            <div class="cust-contact-fields">
+              <div class="cust-cf"><span class="cust-cf-label">邮箱</span><span class="cust-cf-val"><a class="text-primary">lisa.w@bonohair.com</a></span></div>
+              <div class="cust-cf"><span class="cust-cf-label">社交平台</span><span class="cust-cf-val">+49 176 9912 3378<br><a class="text-primary text-sm">LinkedIn: lisa-weber-bono</a></span></div>
+              <div class="cust-cf"><span class="cust-cf-label">性别</span><span class="cust-cf-val">女</span></div>
+              <div class="cust-cf"><span class="cust-cf-label">职位</span><span class="cust-cf-val">采购专员</span></div>
+            </div>
+            <div class="flex gap-8 mt-8">
+              <button class="btn btn-sm" onclick="navigateTo('mail','mail-compose')">✉ 写邮件</button>
+              <button class="btn btn-sm btn-text" onclick="openContactDetailModal('Lisa Weber')">详情</button>
+            </div>
+          </div>
+          <div class="cust-contact-panel">
+            <div class="cust-contact-head">
+              <span class="cust-contact-name">Thomas Braun</span>
+              <span class="contact-tag" style="background:var(--warning-light);color:#92400e">技术</span>
+            </div>
+            <div class="cust-contact-sub">写信 0 次，成功 0 次</div>
+            <div class="cust-contact-fields">
+              <div class="cust-cf"><span class="cust-cf-label">邮箱</span><span class="cust-cf-val"><a class="text-primary">t.braun@bonohair.com</a></span></div>
+              <div class="cust-cf"><span class="cust-cf-label">社交平台</span><span class="cust-cf-val">--</span></div>
+              <div class="cust-cf"><span class="cust-cf-label">性别</span><span class="cust-cf-val">男</span></div>
+              <div class="cust-cf"><span class="cust-cf-label">职位</span><span class="cust-cf-val">技术经理</span></div>
+            </div>
+            <div class="flex gap-8 mt-8">
+              <button class="btn btn-sm" onclick="navigateTo('mail','mail-compose')">✉ 写邮件</button>
+              <button class="btn btn-sm btn-text" onclick="openContactDetailModal('Thomas Braun')">详情</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="detail-main cust-detail-main">
+        <div class="cust-detail-aside">
+          <div class="detail-card">
+            <div class="flex-between"><span class="card-title" style="margin-bottom:0">进行中的商机 (0)</span><button class="btn btn-sm" onclick="openNewBusinessDrawer()">+ 添加</button></div>
+          </div>
+          <div class="detail-card">
+            <div class="flex-between"><span class="card-title" style="margin-bottom:0">计划日程 (0)</span><button class="btn btn-sm" onclick="openNewScheduleModal()">+ 添加</button></div>
+          </div>
+        </div>
         ${renderTabs([{label:'动态'},{label:'资料'},{label:'商机&交易'},{label:'Tips'},{label:'AI 背调'},{label:'数据分析'},{label:'文档'},{label:'操作历史'}], 0, mainTabId)}
         ${renderTabPanels(mainTabId, [panelDynamic, panelProfile, panelBizTx, panelTips, panelAI, panelAnalysis, panelDocs, panelHistory])}
-      </div>
-      <div class="detail-sidebar">
-        <div class="detail-card">
-          <div class="flex-between"><span class="card-title" style="margin-bottom:0">进行中的商机 (0)</span><button class="btn btn-sm" onclick="openNewBusinessDrawer()">+ 添加</button></div>
-        </div>
-        <div class="detail-card">
-          <div class="flex-between"><span class="card-title" style="margin-bottom:0">计划日程 (0)</span><button class="btn btn-sm" onclick="openNewScheduleModal()">+ 添加</button></div>
-        </div>
       </div>
     </div>
   `;
