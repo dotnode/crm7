@@ -1,0 +1,99 @@
+{
+  "shots": [
+    "01-detail-default.png",
+    "02-write-followup-expanded.png",
+    "03-tab-profile.png",
+    "04-tab-biztx.png",
+    "05-tab-analysis.png",
+    "06-tab-ai.png",
+    "07-tab-history.png",
+    "08-edit-drawer.png",
+    "09-edit-drawer-other-expanded.png",
+    "10-final.png"
+  ],
+  "writeFollowup": [],
+  "profileGroups": [
+    "公司常用信息",
+    "公司其它信息",
+    "跟进信息",
+    "系统信息"
+  ],
+  "biztxHeaders": {
+    "count": 24,
+    "ths": [
+      "商机编号",
+      "商机名称",
+      "当前阶段",
+      "销售金额",
+      "结束日期",
+      "已生效回款金额",
+      "未回款金额",
+      "负责人",
+      "订单编号",
+      "订单名称",
+      "当前阶段",
+      "订单金额",
+      "订单日期",
+      "产品项目数",
+      "已生效回款金额",
+      "未回款金额",
+      "符合目标规则",
+      "创建人",
+      "业绩归属人",
+      "产品",
+      "销售订单",
+      "报价单",
+      "商机",
+      "操作"
+    ]
+  },
+  "analysis": {
+    "cards": [
+      "客户销售趋势",
+      "产品销售排行",
+      "产品销售趋势对比"
+    ],
+    "groups": [
+      "销售情况",
+      "沟通情况"
+    ],
+    "hasSort": true
+  },
+  "aiTab": {
+    "hasNotice": true,
+    "hasTypes": [
+      "AI 聊天旅程",
+      "AI 谈单卡点"
+    ],
+    "hasTimeline": true
+  },
+  "history": {
+    "filters": [
+      "操作类型",
+      "操作人",
+      "时间范围",
+      "关键字"
+    ],
+    "ths": [
+      "操作时间",
+      "操作人",
+      "操作类型",
+      "操作对象/字段",
+      "变更前",
+      "变更后",
+      "备注/来源"
+    ]
+  },
+  "editDrawer": [
+    "公司常用信息",
+    "公司其它信息",
+    "联系人信息",
+    "显示设置",
+    "添加联系人"
+  ],
+  "findings": {
+    "consoleErrors": [],
+    "pageErrors": [],
+    "failedRequests": []
+  }
+}

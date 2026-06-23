@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OKKI CRM - H5 原型</title>
+  <link rel="stylesheet" href="css/style.css?v=20260623a">
+</head>
+<body>
+  <!-- Top Bar -->
+  <div class="topbar">
+    <div class="topbar-logo" onclick="navigateTo('dashboard')">
+      <svg viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="2" width="8" height="8" rx="2"/><rect x="14" y="2" width="8" height="8" rx="2"/><rect x="2" y="14" width="8" height="8" rx="2"/><rect x="14" y="14" width="8" height="8" rx="2"/></svg>
+      OKKI CRM
+    </div>
+    <div class="topbar-search">
+      <select id="searchType">
+        <option>全部</option><option>客户</option><option>线索</option><option>商机</option><option>成员</option>
+      </select>
+      <input type="text" placeholder="请输入搜索关键字" />
+    </div>
+    <div class="topbar-actions">
+      <button class="topbar-btn">TM</button>
+      <button class="topbar-btn">消息<span class="topbar-badge">99+</span></button>
+      <button class="topbar-btn">客服</button>
+      <button class="topbar-btn">帮助</button>
+      <div class="topbar-avatar">U</div>
+    </div>
+  </div>
+
+  <!-- App Container -->
+  <div id="app">
+    <!-- Sidebar -->
+    <nav class="sidebar" id="sidebar"></nav>
+    <!-- Submenu -->
+    <div class="submenu" id="submenu" style="display:none"></div>
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+      <div class="content-area" id="contentArea"></div>
+    </div>
+  </div>
+
+  <!-- Drawer -->
+  <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+  <div class="drawer" id="drawer">
+    <div class="drawer-header">
+      <span class="drawer-title" id="drawerTitle"></span>
+      <button class="drawer-close" onclick="closeDrawer()">&times;</button>
+    </div>
+    <div class="drawer-body" id="drawerBody"></div>
+    <div class="drawer-footer" id="drawerFooter"></div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-overlay" id="modalOverlay" onclick="closeModal()">
+    <div class="modal" id="modal" onclick="event.stopPropagation()">
+      <div class="modal-header" id="modalHeader"></div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-footer" id="modalFooter"></div>
+    </div>
+  </div>
+
+  <script src="js/app.js?v=20260623a"></script>
+</body>
+</html>
