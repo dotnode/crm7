@@ -245,7 +245,7 @@ function renderTable(cols, rows, opts = {}) {
   });
   html += `</tr></thead><tbody>`;
   if (rows.length === 0) {
-    html += `<tr><td colspan="${cols.length + (opts.checkbox ? 1 : 0)}" style="text-align:center;padding:40px;color:var(--text-muted)">暂无数据</td></tr>`;
+    html += `<tr><td colspan="${cols.length + (opts.checkbox ? 1 : 0)}" class="table-empty">暂无数据</td></tr>`;
   } else {
     rows.forEach(row => {
       html += `<tr>`;
@@ -522,7 +522,7 @@ function expandFollowUp(el) {
   el.outerHTML =
     '<div class="card mb-12 follow-up-form" id="' + uid + '">' +
       '<div class="flex-between mb-12">' +
-        '<div class="form-section-title" style="margin-bottom:0">写跟进</div>' +
+        '<div class="form-section-title mb-0">写跟进</div>' +
         '<div class="flex gap-8">' +
           '<button class="btn btn-sm" onclick="showToast(\'AI 正在根据沟通记录生成跟进内容…\')">✨ AI写跟进</button>' +
           '<button class="btn btn-sm" onclick="showToast(\'从跟进模板中带入标准化内容\')">📋 选择模板</button>' +
@@ -649,7 +649,7 @@ PAGE_RENDERERS['dashboard'] = () => {
     </div>
     <div class="card mb-16">
       <div class="flex-between mb-12">
-        <div class="card-title" style="margin-bottom:0">日程</div>
+        <div class="card-title mb-0">日程</div>
         <div class="btn-group">
           <button class="btn btn-sm btn-primary" onclick="openNewScheduleModal()">+ 新建日程</button>
           <div class="toggle-group">
@@ -667,7 +667,7 @@ PAGE_RENDERERS['dashboard'] = () => {
     <div class="card">
       <div class="flex-between mb-12">
         <div>
-          <div class="card-title" style="margin-bottom:0">跟进任务 <span class="ai-badge">AI</span></div>
+          <div class="card-title mb-0">跟进任务 <span class="ai-badge">AI</span></div>
           <div class="text-sm text-muted" style="margin-top:4px">基于 AI 分析与管理者配置，为你推荐以下跟进任务。立即行动，持续提升业绩！</div>
         </div>
         <div class="btn-group">
@@ -748,7 +748,7 @@ function renderDashTaskList() {
   const tasks = DASH_TASKS.filter(t => !t.done);
   if (!tasks.length) return `<div class="empty-state" style="padding:48px"><div class="empty-icon">🎉</div><div class="empty-text">跟进任务已全部处理，干得漂亮！</div></div>`;
   return tasks.map(task => `
-    <div class="card mb-8" style="border:1px solid var(--border-light);box-shadow:none">
+    <div class="card card-flat mb-8">
       <div class="flex-between">
         <div>
           <div style="font-weight:500;margin-bottom:4px">${task.title}</div>
@@ -806,7 +806,7 @@ function openExchangeCalcModal() {
         </select>
       </div>
     </div>
-    <div class="alert alert-info" id="xcResult" style="margin-bottom:0">1000 USD ≈ 7280.00 CNY（参考汇率 1 USD = 7.28 CNY）</div>
+    <div class="alert alert-info mb-0" id="xcResult">1000 USD ≈ 7280.00 CNY（参考汇率 1 USD = 7.28 CNY）</div>
     <div class="form-tip">汇率为参考值，实际交易以银行汇率为准。</div>
   `, '<button class="btn" onclick="closeModal()">关闭</button>');
   calcExchange();
@@ -951,7 +951,7 @@ function renderMailReadPanel() {
     </div>
     <div class="flex gap-8 mb-16">
       <button class="btn btn-primary btn-sm" onclick="navigateTo('mail','mail-compose')">快速回复</button>
-      <button class="btn btn-sm" style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none">✨ AI 邮件创作</button>
+      <button class="btn btn-sm btn-ai">✨ AI 邮件创作</button>
     </div>
     <div class="divider"></div>
     <div class="card-title">销售助手</div>
@@ -1075,7 +1075,7 @@ PAGE_RENDERERS['mail-compose'] = () => {
     <div class="mail-cc-row hidden" id="mailBccRow">${renderFormField('密送','text',{placeholder:'输入密送邮箱'})}</div>
     ${renderFormField('主题', 'text', {placeholder:'邮件主题'})}
     <div class="flex-between mb-8">
-      <button class="btn btn-sm" style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none" onclick="showToast('✨ AI 正在生成邮件内容…')">✨ AI 邮件创作</button>
+      <button class="btn btn-sm btn-ai" onclick="showToast('✨ AI 正在生成邮件内容…')">✨ AI 邮件创作</button>
     </div>
     <div style="border:1px solid var(--border);border-radius:var(--radius);min-height:300px;padding:12px">
       <div style="border-bottom:1px solid var(--border-light);padding-bottom:8px;margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap">
@@ -1162,7 +1162,7 @@ function showMailDetail() {
     </div>
     <div class="flex gap-8 mb-16">
       <button class="btn btn-primary btn-sm">快速回复</button>
-      <button class="btn btn-sm" style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none">✨ AI 邮件创作</button>
+      <button class="btn btn-sm btn-ai">✨ AI 邮件创作</button>
     </div>
     <div class="divider"></div>
     <div class="card-title">销售助手</div>
@@ -1185,7 +1185,7 @@ function showMailDetail() {
     <div class="divider"></div>
     <div class="alert alert-warning">
       已读回执：发件人希望得到您的已读回执，是否发送？
-      <button class="btn btn-sm" style="margin-left:auto">不发送</button>
+      <button class="btn btn-sm ml-auto">不发送</button>
       <button class="btn btn-sm btn-primary">发送</button>
     </div>
   `, '<button class="btn" onclick="closeDrawer()">关闭</button>');
@@ -1240,7 +1240,7 @@ PAGE_RENDERERS['mail-draft'] = () => {
         '<span class="text-muted text-sm">' + d[1] + '</span>',
         '<span class="text-muted text-sm">' + d[2] + '</span>',
         d[3], d[4],
-        '<button class="btn btn-sm btn-primary" onclick="openDraft()">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'
+        '<button class="btn btn-sm btn-primary" onclick="openDraft()">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>'
       ]),
       { checkbox: true, total: drafts.length }
     )}
@@ -1332,7 +1332,7 @@ PAGE_RENDERERS['mail-deleted'] = () => {
     ['Unknown','test@test123.com','RE: RE: RE: Hello','Forwarded chain mail...','06-17','自动删除'],
   ];
   return `
-    <div class="page-header"><h1 class="page-title">已删除邮件</h1><div class="page-actions"><button class="btn btn-text" style="color:var(--danger)" onclick="openClearDeletedModal()">清空</button><button class="btn btn-primary" onclick="navigateTo('mail','mail-compose')">✉ 写信</button></div></div>
+    <div class="page-header"><h1 class="page-title">已删除邮件</h1><div class="page-actions"><button class="btn btn-text text-danger" onclick="openClearDeletedModal()">清空</button><button class="btn btn-primary" onclick="navigateTo('mail','mail-compose')">✉ 写信</button></div></div>
     <div class="alert alert-warning mb-12">⚠️ 已删除邮件将在 30 天后自动永久删除</div>
     ${renderTable(
       ['发件人','邮箱','主题','摘要','删除时间','删除方式','操作'],
@@ -1340,7 +1340,7 @@ PAGE_RENDERERS['mail-deleted'] = () => {
         e[0], '<span class="text-muted">' + e[1] + '</span>',
         e[2], '<span class="text-muted text-sm">' + e[3] + '</span>',
         e[4], '<span class="table-tag">' + e[5] + '</span>',
-        '<button class="btn btn-sm">恢复</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">永久删除</button>'
+        '<button class="btn btn-sm">恢复</button> <button class="btn btn-sm btn-text text-danger">永久删除</button>'
       ]),
       { checkbox: true, total: deleted.length }
     )}
@@ -1363,7 +1363,7 @@ PAGE_RENDERERS['mail-spam'] = () => {
         e[0], '<span class="text-muted">' + e[1] + '</span>',
         e[2], '<span class="text-muted text-sm">' + e[3].substring(0,30) + '...</span>',
         e[4],
-        '<button class="btn btn-sm">非垃圾邮件</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'
+        '<button class="btn btn-sm">非垃圾邮件</button> <button class="btn btn-sm btn-text text-danger">删除</button>'
       ]),
       { checkbox: true, total: spam.length }
     )}
@@ -1407,7 +1407,7 @@ PAGE_RENDERERS['mail-folder'] = () => `
       <div class="tree-item tree-indent">订单确认 <span class="count">15</span></div>
       <div class="tree-item tree-indent">样品邮件 <span class="count">6</span></div>
     </div>
-    <div class="right-content" style="padding:0 16px">
+    <div class="right-content px-16">
       <div class="table-info mb-8">文件夹: 重要客户 · 12 封邮件</div>
       ${renderTable(
         ['发件人','邮箱','主题','时间'],
@@ -1456,18 +1456,18 @@ PAGE_RENDERERS['mail-tag'] = () => `
   <div class="page-with-sidebar">
     <div class="left-panel">
       <div class="tree-item active">全部标签</div>
-      <div class="tree-item tree-indent"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--danger);margin-right:6px"></span>紧急 <span class="count">5</span></div>
-      <div class="tree-item tree-indent"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--warning);margin-right:6px"></span>重要 <span class="count">12</span></div>
-      <div class="tree-item tree-indent"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--success);margin-right:6px"></span>已处理 <span class="count">45</span></div>
-      <div class="tree-item tree-indent"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--primary);margin-right:6px"></span>询盘 <span class="count">28</span></div>
+      <div class="tree-item tree-indent"><span class="status-dot danger"></span>紧急 <span class="count">5</span></div>
+      <div class="tree-item tree-indent"><span class="status-dot warning"></span>重要 <span class="count">12</span></div>
+      <div class="tree-item tree-indent"><span class="status-dot success"></span>已处理 <span class="count">45</span></div>
+      <div class="tree-item tree-indent"><span class="status-dot primary"></span>询盘 <span class="count">28</span></div>
       <div class="tree-item tree-indent"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#999;margin-right:6px"></span>其他 <span class="count">10</span></div>
     </div>
-    <div class="right-content" style="padding:0 16px">
+    <div class="right-content px-16">
       <div class="table-info mb-8">标签: 紧急 · 5 封</div>
       ${renderTable(
         ['标签','发件人','主题','时间'],
-        [['<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--danger);margin-right:6px"></span>紧急','Mike Wilson','Urgent: Shipping Delay','06-19'],
-         ['<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--danger);margin-right:6px"></span>紧急','Bob Johnson','RFQ: Custom Products - Deadline Tomorrow','06-18']],
+        [['<span class="status-dot danger"></span>紧急','Mike Wilson','Urgent: Shipping Delay','06-19'],
+         ['<span class="status-dot danger"></span>紧急','Bob Johnson','RFQ: Custom Products - Deadline Tomorrow','06-18']],
         { checkbox: true, total: 5 }
       )}
     </div>
@@ -1621,7 +1621,7 @@ PAGE_RENDERERS['leads-list'] = () => {
         <div class="toggle-group"><button class="toggle-btn active" onclick="switchToggle(this)">我的线索</button><button class="toggle-btn" onclick="switchToggle(this)">团队线索</button></div>
       </div>
       <div class="page-actions">
-        <button class="btn btn-sm" style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none" onclick="openAILeadAssistant()">🤖 AI 数据助理</button>
+        <button class="btn btn-sm btn-ai" onclick="openAILeadAssistant()">🤖 AI 数据助理</button>
         <button class="btn btn-sm" onclick="openLeadImportExportDialog()">⇅ 导入导出</button>
         <button class="btn btn-sm" onclick="openLeadFilterDrawer()">MASConstraintMaker 筛选</button>
         <button class="btn btn-primary" onclick="openNewLeadDrawer()">+ 新建线索</button>
@@ -1646,7 +1646,7 @@ PAGE_RENDERERS['leads-list'] = () => {
         <div class="tree-item tree-indent" onclick="filterLeadTree(this,'TM 咨询',16)">TM 咨询 <span class="count">16</span></div>
         <div class="tree-item tree-indent" onclick="filterLeadTree(this,'阿里询盘',20)">阿里询盘 <span class="count">20</span></div>
       </div>
-      <div class="right-content" style="padding:0 16px">
+      <div class="right-content px-16">
         <div class="bulk-toolbar" id="leadBulkBar">${renderLeadBulkBar()}</div>
         <div class="flex-between mb-12">
           <span class="table-info">共 128 条线索</span>
@@ -1680,7 +1680,7 @@ function renderLeadBulkBar() {
     <button class="btn btn-sm" onclick="showToast('批量添加标签')">加标签</button>
     <button class="btn btn-sm" onclick="showToast('批量转化为客户')">转为客户</button>
     <button class="btn btn-sm" onclick="showToast('批量放入公海')">放入公海</button>
-    <button class="btn btn-sm btn-text" style="color:var(--danger)" onclick="showToast('批量删除所选线索')">删除</button>
+    <button class="btn btn-sm btn-text text-danger" onclick="showToast('批量删除所选线索')">删除</button>
     <span class="text-sm text-muted">勾选线索后可批量操作</span></div>`;
 }
 function openLeadImportExportDialog() {
@@ -1707,7 +1707,7 @@ function openNewLeadDrawer() {
   openDrawer('新建线索', `
     <div class="alert alert-info mb-12">💡 线索增强：系统将自动补全公司信息和联系方式</div>
     <div class="form-section">
-      <div class="form-section-title">常用信息 <a class="btn-text btn-sm" style="margin-left:auto">显示设置</a></div>
+      <div class="form-section-title">常用信息 <a class="btn-text btn-sm ml-auto">显示设置</a></div>
       ${renderFormField('公司网址', 'text', {placeholder:'输入网址或名称自动匹配'})}
       ${renderFormField('线索名称', 'text', {required:true, placeholder:'请输入线索名称'})}
       ${renderFormField('国家地区', 'select', {options:['请选择','中国','美国','德国','巴西','阿联酋','日本','英国']})}
@@ -1773,8 +1773,8 @@ PAGE_RENDERERS['leads-detail'] = () => {
         '<div class="timeline"><div class="timeline-item"><div class="tl-time">2026-06-20 14:30</div><div class="tl-title">收到邮件</div><div class="tl-desc">info@wilson.com → service@company.com</div></div><div class="timeline-item"><div class="tl-time">2026-06-19 10:00</div><div class="tl-title">发送邮件</div><div class="tl-desc">service@company.com → info@wilson.com</div></div></div>'
       ])}
       </div>
-      <div id="lead_dyn_chat" style="display:none"><div class="card" style="padding:40px;text-align:center;color:var(--text-muted)">AI 聊天旅程：暂无数据</div></div>
-      <div id="lead_dyn_stuck" style="display:none"><div class="card" style="padding:40px;text-align:center;color:var(--text-muted)">AI 谈单卡点：暂无卡点</div></div>
+      <div id="lead_dyn_chat" style="display:none"><div class="card placeholder-card">AI 聊天旅程：暂无数据</div></div>
+      <div id="lead_dyn_stuck" style="display:none"><div class="card placeholder-card">AI 谈单卡点：暂无卡点</div></div>
     </div>`;
 
   const panelProfile = `
@@ -1907,7 +1907,7 @@ PAGE_RENDERERS['leads-detail'] = () => {
       <div class="detail-sidebar">
         <div class="detail-card">
           <div class="card-title">关键联系信息</div>
-          <div class="grid-2" style="gap:8px">
+          <div class="grid-2 gap-8">
             <div><div class="text-muted text-sm">联系信息</div><div class="text-bold">3</div></div>
             <div><div class="text-muted text-sm">未联系天数</div><div class="text-bold">1</div></div>
             <div><div class="text-muted text-sm">收到邮件</div><div class="text-bold">5</div></div>
@@ -1961,7 +1961,7 @@ function openLeadMoreMenu() {
     '<button class="btn w-full" onclick="closeModal()">转化为客户</button>' +
     '<button class="btn w-full" onclick="closeModal()">发起背调</button>' +
     '<button class="btn w-full" onclick="closeModal()">移入公海</button>' +
-    '<button class="btn w-full" style="color:var(--danger)" onclick="closeModal()">标记为无效</button>' +
+    '<button class="btn w-full text-danger" onclick="closeModal()">标记为无效</button>' +
     '</div>', ''
   );
 }
@@ -2065,7 +2065,7 @@ function openAILeadAssistant() {
     </div>
     <div class="card mb-12">
       <div class="card-title">数据概览</div>
-      <div class="grid-2" style="gap:8px">
+      <div class="grid-2 gap-8">
         <div><div class="text-muted text-sm">线索总数</div><div class="text-bold">128</div></div>
         <div><div class="text-muted text-sm">本周新增</div><div class="text-bold text-success">+12</div></div>
         <div><div class="text-muted text-sm">转化率</div><div class="text-bold">6.3%</div></div>
@@ -2187,27 +2187,27 @@ PAGE_RENDERERS['leads-incubation'] = () => `
   </div>
   <div class="card mb-16">
     <div class="flex-between mb-12">
-      <div class="card-title" style="margin-bottom:0">私海线索分布情况</div>
+      <div class="card-title mb-0">私海线索分布情况</div>
       <input type="date" class="filter-input" value="2026-06-21" style="width:150px" />
     </div>
     <div class="stat-cards">
       <div class="stat-card"><div class="stat-label">线索总数</div><div class="stat-value">128</div></div>
-      <div class="stat-card" style="border-left:3px solid var(--danger)"><div class="stat-label">无联系信息</div><div class="stat-value text-danger">15</div></div>
-      <div class="stat-card" style="border-left:3px solid var(--warning)"><div class="stat-label">待建联</div><div class="stat-value text-warning">45</div></div>
-      <div class="stat-card" style="border-left:3px solid var(--info)"><div class="stat-label">已回复</div><div class="stat-value text-primary">38</div></div>
-      <div class="stat-card" style="border-left:3px solid var(--success)"><div class="stat-label">已询盘</div><div class="stat-value text-success">30</div></div>
+      <div class="stat-card danger"><div class="stat-label">无联系信息</div><div class="stat-value text-danger">15</div></div>
+      <div class="stat-card warning"><div class="stat-label">待建联</div><div class="stat-value text-warning">45</div></div>
+      <div class="stat-card info"><div class="stat-label">已回复</div><div class="stat-value text-primary">38</div></div>
+      <div class="stat-card success"><div class="stat-label">已询盘</div><div class="stat-value text-success">30</div></div>
     </div>
     <div class="alert alert-info">💡 总结分析：待补全建议开启智能背调，待建联建议尽快初步联系，已回复建议加强沟通，已询盘建议优先分发或转化为客户。</div>
   </div>
   <div class="card mb-16">
     <div class="card-title">行动建议</div>
     <button class="btn btn-sm btn-primary mb-12" onclick="scrollToIncubationResult()">查看孵化结果</button>
-    <div class="grid-2" style="gap:16px">
-      <div class="card" style="border:1px solid var(--border-light);box-shadow:none">
+    <div class="grid-2 gap-16">
+      <div class="card card-flat">
         <div class="flex-between mb-8"><span class="text-bold">无联系方式 (15)</span><button class="btn btn-sm btn-primary" onclick="openBackgroundCheckModal()">智能补充背调</button></div>
         <div class="text-sm text-muted">这些线索无联系方式，可通过智能背调补充企业、联系人和公司信息。</div>
       </div>
-      <div class="card" style="border:1px solid var(--border-light);box-shadow:none">
+      <div class="card card-flat">
         <div class="flex-between mb-8"><span class="text-bold">待建联 (45)</span><button class="btn btn-sm btn-primary" onclick="openMassMarketingModal()">一键营销</button></div>
         <div class="text-sm text-muted">从未联系、建档超30天、已营销但未回复。</div>
         <div class="mt-12 text-sm text-primary">为您精选，建议优先跟进：</div>
@@ -2225,7 +2225,7 @@ PAGE_RENDERERS['leads-incubation'] = () => `
           </div>`).join('')}
         </div>
       </div>
-      <div class="card" style="border:1px solid var(--border-light);box-shadow:none">
+      <div class="card card-flat">
         <div class="flex-between mb-8"><span class="text-bold">已回复 (38)</span><button class="btn btn-sm btn-primary" onclick="navigateTo('mail','mail-compose')">立即沟通</button></div>
         <div class="text-sm text-muted">线索已获回复，需要持续跟进并挖掘诉求。</div>
         <div class="mt-12 text-sm text-primary">为您精选，建议优先跟进：</div>
@@ -2242,7 +2242,7 @@ PAGE_RENDERERS['leads-incubation'] = () => `
           </div>`).join('')}
         </div>
       </div>
-      <div class="card" style="border:1px solid var(--border-light);box-shadow:none">
+      <div class="card card-flat">
         <div class="flex-between mb-8"><span class="text-bold">已询盘 (30)</span><div class="btn-group"><button class="btn btn-sm" onclick="openDistributeLeadModal()">分配线索</button><button class="btn btn-sm btn-primary" onclick="openConvertToCustomerModal()">转化客户</button></div></div>
         <div class="text-sm text-muted">识别询盘诉求明确、疑似无效询盘、推荐标签和精选线索。</div>
         <div class="mt-12 text-sm text-primary">为您精选，建议优先跟进：</div>
@@ -2270,8 +2270,8 @@ PAGE_RENDERERS['leads-incubation'] = () => `
       <div class="stat-card"><div class="stat-label">线索营销 - 邮件已打开</div><div class="stat-value">42</div></div>
       <div class="stat-card"><div class="stat-label">线索营销 - EDM 已打开</div><div class="stat-value">31</div></div>
       <div class="stat-card"><div class="stat-label">线索营销 - 总营销</div><div class="stat-value">56</div></div>
-      <div class="stat-card" style="border-left:3px solid var(--success)"><div class="stat-label">线索转化 - 总转化</div><div class="stat-value">8</div></div>
-      <div class="stat-card" style="border-left:3px solid var(--danger)"><div class="stat-label">无效线索</div><div class="stat-value text-danger">6</div></div>
+      <div class="stat-card success"><div class="stat-label">线索转化 - 总转化</div><div class="stat-value">8</div></div>
+      <div class="stat-card danger"><div class="stat-label">无效线索</div><div class="stat-value text-danger">6</div></div>
     </div>
     <div class="text-sm text-muted mt-12">系统累计补充 12 条公司信息、7 个更多联系人、19 条其他信息；完成 56 次营销触达（邮件打开 42、EDM 打开 31）；成功转化 8 条线索为客户；识别 6 条无效线索。</div>
   </div>
@@ -2326,7 +2326,7 @@ PAGE_RENDERERS['customers-list'] = () => {
         <div class="tabs comp-mini-tabs"><div class="tab-item ${isAi?'':'active'}" onclick="switchCustGroupTab('客群')">客群</div><div class="tab-item ${isAi?'active':''}" onclick="switchCustGroupTab('AI 客群')">AI 客群</div></div>
         ${isAi ? aiTree : normalTree}
       </div>
-      <div class="right-content" style="padding:0 16px">
+      <div class="right-content px-16">
         <div class="bulk-toolbar">${renderCustomerBulkBar()}</div>
         <div class="flex-between mb-12">
           <span class="table-info">${isAi?'高价值待激活':'全部客户'} · ${isAi?32:356} 个客户</span>
@@ -2358,7 +2358,7 @@ function renderCustomerBulkBar() {
     <button class="btn btn-sm" onclick="showToast('批量加标签')">加标签</button>
     <button class="btn btn-sm" onclick="showToast('批量放入公海')">放入公海</button>
     <button class="btn btn-sm" onclick="showToast('批量导出')">导出</button>
-    <button class="btn btn-sm btn-text" style="color:var(--danger)" onclick="showToast('批量删除')">删除</button></div>`;
+    <button class="btn btn-sm btn-text text-danger" onclick="showToast('批量删除')">删除</button></div>`;
 }
 function openCustomerImportExportDialog() {
   openModal('客户导入 / 导出','<div class="grid-2"><div class="upload-area">📥 导入客户（Excel/CSV）</div><div class="upload-area" style="border-style:solid">📤 导出当前客户</div></div><div class="mt-12 text-sm text-muted">导入前自动查重，可选择性合并或新建客户。</div>','<button class="btn" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="closeModal();showToast(\'已开始导入\')">开始导入</button>');
@@ -2493,7 +2493,7 @@ function openCustomerSettingsModal() {
 function openNewCustomerDrawer() {
   openDrawer('新建客户', `
     <div class="form-section">
-      <div class="form-section-title">公司常用信息 <a class="btn-text btn-sm" style="margin-left:auto">显示设置</a></div>
+      <div class="form-section-title">公司常用信息 <a class="btn-text btn-sm ml-auto">显示设置</a></div>
       ${renderFormField('公司网址', 'text', {placeholder:'输入公司网址/名称自动匹配'})}
       ${renderFormField('公司名称', 'text', {required:true, placeholder:'请输入公司名称'})}
       ${renderFormField('国家地区', 'select', {options:['请选择','中国','美国','德国','巴西','阿联酋','日本','英国','澳大利亚']})}
@@ -2581,8 +2581,8 @@ PAGE_RENDERERS['customers-detail'] = () => {
         '<div class="timeline"><div class="timeline-item"><div class="tl-time">2025-03-21 20:39</div><div class="tl-title">网站行为</div><div class="tl-desc">浏览 Mens Hairpiece Supplies</div></div><div class="timeline-item"><div class="tl-time">2025-03-21 20:39</div><div class="tl-title">表单行为</div><div class="tl-desc">在页面 login - Bono Hair 填写并提交表单</div></div></div>'
       ])}
       </div>
-      <div id="cust_dyn_chat" style="display:none"><div class="card" style="padding:40px;text-align:center;color:var(--text-muted)">AI 聊天旅程：根据沟通记录自动生成客户对话时间线</div></div>
-      <div id="cust_dyn_stuck" style="display:none"><div class="card" style="padding:40px;text-align:center;color:var(--text-muted)">AI 谈单卡点：暂无卡点数据</div></div>
+      <div id="cust_dyn_chat" style="display:none"><div class="card placeholder-card">AI 聊天旅程：根据沟通记录自动生成客户对话时间线</div></div>
+      <div id="cust_dyn_stuck" style="display:none"><div class="card placeholder-card">AI 谈单卡点：暂无卡点数据</div></div>
     </div>
     <div class="text-sm text-muted mt-16 text-center">待跟进事项、AI聊天旅程、AI谈单卡点内容由AI生成</div>`;
 
@@ -2647,7 +2647,7 @@ PAGE_RENDERERS['customers-detail'] = () => {
   const panelBizTx = `
     <div class="card mb-12">
       <div class="flex-between mb-12">
-        <div class="card-title" style="margin-bottom:0">商机</div>
+        <div class="card-title mb-0">商机</div>
         <div class="flex gap-8">
           ${renderTabs([{label:'全部',count:0}], 0, 'cust_biz_tab')}
           <button class="btn btn-sm btn-primary" onclick="openNewBusinessDrawer()">+ 新建商机</button>
@@ -2658,7 +2658,7 @@ PAGE_RENDERERS['customers-detail'] = () => {
     </div>
     <div class="card mb-12">
       <div class="flex-between mb-12">
-        <div class="card-title" style="margin-bottom:0">销售订单</div>
+        <div class="card-title mb-0">销售订单</div>
         ${renderTabs([{label:'全部',count:0}], 0, 'cust_order_tab')}
       </div>
       ${renderTable(['订单编号','订单名称','当前阶段','订单金额','订单日期','产品项目数','已生效回款金额','未回款金额','符合目标规则','创建人','业绩归属人'],
@@ -2666,7 +2666,7 @@ PAGE_RENDERERS['customers-detail'] = () => {
     </div>
     <div class="card">
       <div class="flex-between mb-12">
-        <div class="card-title" style="margin-bottom:0">产品</div>
+        <div class="card-title mb-0">产品</div>
         <div class="text-sm text-muted">子分类：成交的产品</div>
       </div>
       ${renderTable(['产品','销售订单','报价单','商机','操作'],
@@ -2700,7 +2700,7 @@ PAGE_RENDERERS['customers-detail'] = () => {
           </div>
         </div>
       </div>
-      <div id="cust_ai_stuck" style="display:none"><div class="card" style="padding:40px;text-align:center;color:var(--text-muted)">AI 谈单卡点：0</div></div>
+      <div id="cust_ai_stuck" style="display:none"><div class="card placeholder-card">AI 谈单卡点：0</div></div>
     </div>
     <div class="text-sm text-muted mt-16 text-center">AI 背调内容由 AI 生成</div>`;
 
@@ -2823,7 +2823,7 @@ PAGE_RENDERERS['customers-detail'] = () => {
   const panelDocs = `
     <div class="card">
       <div class="flex-between mb-12">
-        <div class="card-title" style="margin-bottom:0">全部文档</div>
+        <div class="card-title mb-0">全部文档</div>
         <div class="flex gap-8 items-center">
           <input class="filter-input" placeholder="搜索文档名称" style="height:30px;min-width:160px"/>
           <select class="filter-select" onchange="showToast('按类型筛选：'+this.value)"><option>全部类型</option><option>报价单</option><option>合同</option><option>图片</option><option>其他</option></select>
@@ -2917,7 +2917,7 @@ PAGE_RENDERERS['customers-detail'] = () => {
           <div class="cust-contact-panel">
             <div class="cust-contact-head">
               <span class="cust-contact-name">Erik Kirste</span>
-              <span class="contact-tag" style="background:var(--success-light);color:var(--success)">主</span>
+              <span class="contact-tag success">主</span>
             </div>
             <div class="cust-contact-sub">写信 3 次，成功 2 次</div>
             <div class="cust-contact-fields">
@@ -2970,10 +2970,10 @@ PAGE_RENDERERS['customers-detail'] = () => {
       <div class="detail-main cust-detail-main">
         <div class="cust-detail-aside">
           <div class="detail-card">
-            <div class="flex-between"><span class="card-title" style="margin-bottom:0">进行中的商机 (0)</span><button class="btn btn-sm" onclick="openNewBusinessDrawer()">+ 添加</button></div>
+            <div class="flex-between"><span class="card-title mb-0">进行中的商机 (0)</span><button class="btn btn-sm" onclick="openNewBusinessDrawer()">+ 添加</button></div>
           </div>
           <div class="detail-card">
-            <div class="flex-between"><span class="card-title" style="margin-bottom:0">计划日程 (0)</span><button class="btn btn-sm" onclick="openNewScheduleModal()">+ 添加</button></div>
+            <div class="flex-between"><span class="card-title mb-0">计划日程 (0)</span><button class="btn btn-sm" onclick="openNewScheduleModal()">+ 添加</button></div>
           </div>
         </div>
         ${renderTabs([{label:'动态'},{label:'资料'},{label:'商机&交易'},{label:'Tips'},{label:'AI 背调'},{label:'数据分析'},{label:'客户知识库'},{label:'文档'},{label:'操作历史'}], 0, mainTabId)}
@@ -2988,7 +2988,7 @@ function analysisCard(title, metrics, withDetail, isNew, chartHtml) {
   var newTag = isNew ? ' <span class="table-tag primary">新</span>' : '';
   var metricsHtml = metrics.map(function(m) { return '<div class="text-sm text-muted">' + m + '</div>'; }).join('');
   return '<div class="card mb-12" style="margin:0">' +
-    '<div class="flex-between mb-12"><div class="card-title" style="margin-bottom:0">' + title + newTag + '</div>' +
+    '<div class="flex-between mb-12"><div class="card-title mb-0">' + title + newTag + '</div>' +
       (withDetail ? '<a class="text-primary text-sm" onclick="showToast(\'查看详情：图表详情区聚焦（原型未设计独立弹层）\')">查看详情</a>' : '') +
     '</div>' +
     '<div class="analysis-chart-box">' + (chartHtml || '暂无数据') + '</div>' +
@@ -3128,8 +3128,8 @@ function openEditCustomerDrawer() {
 
   var contactBlock = function(name, isMain) {
     return '<div class="form-section" style="border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:12px">' +
-      '<div class="flex-between mb-12"><div class="form-section-title" style="margin-bottom:0">' + name + (isMain?' <span class="contact-tag" style="background:var(--success-light);color:var(--success)">主联系人</span>':'') + '</div>' +
-      '<button class="btn btn-sm btn-text" style="color:var(--danger)" onclick="showToast(\'移除联系人块\')">移除</button></div>' +
+      '<div class="flex-between mb-12"><div class="form-section-title mb-0">' + name + (isMain?' <span class="contact-tag success">主联系人</span>':'') + '</div>' +
+      '<button class="btn btn-sm btn-text text-danger" onclick="showToast(\'移除联系人块\')">移除</button></div>' +
       renderFormField('昵称', 'text', {placeholder:'联系人昵称'}) +
       renderFormField('姓名', 'text', {value:name, required:isMain}) +
       renderFormField('邮箱', 'text', {placeholder:'邮箱地址'}) +
@@ -3141,7 +3141,7 @@ function openEditCustomerDrawer() {
 
   openDrawer('编辑客户',
     '<div class="form-section">' +
-      '<div class="flex-between mb-12"><div class="form-section-title" style="margin-bottom:0">公司常用信息</div>' +
+      '<div class="flex-between mb-12"><div class="form-section-title mb-0">公司常用信息</div>' +
       '<button class="btn btn-sm btn-text" onclick="showToast(\'显示设置：调整编辑抽屉内字段显示\')"><span>⚙</span> 显示设置</button></div>' +
       renderFormField('公司网址', 'text', {value:'bonohair.com'}) +
       renderFormField('公司名称', 'text', {required:true, value:'Bono Hair International'}) +
@@ -3160,7 +3160,7 @@ function openEditCustomerDrawer() {
     '</div>' +
     '<div class="form-section">' +
       '<div class="flex-between mb-12" style="cursor:pointer" onclick="var b=document.getElementById(\'cust_other_block\');b.style.display=b.style.display==\'none\'?\'\':\'none\';this.querySelector(\'.caret\').textContent=b.style.display==\'none\'?\'▸\':\'▾\'">' +
-        '<div class="form-section-title" style="margin-bottom:0">公司其它信息 <span class="caret">▾</span></div>' +
+        '<div class="form-section-title mb-0">公司其它信息 <span class="caret">▾</span></div>' +
         '<div class="text-sm text-muted">点击展开/收起</div></div>' +
       '<div id="cust_other_block">' + cOtherHtml + '</div>' +
     '</div>' +
@@ -3183,7 +3183,7 @@ function openCustomerMoreMenu(btn) {
     '<button class="btn w-full" onclick="closeModal()">移入公海</button>' +
     '<button class="btn w-full" onclick="closeModal()">添加协同跟进人</button>' +
     '<button class="btn w-full" onclick="closeModal()">发起背调</button>' +
-    '<button class="btn w-full" style="color:var(--danger)" onclick="closeModal()">删除客户</button>' +
+    '<button class="btn w-full text-danger" onclick="closeModal()">删除客户</button>' +
     '</div>', ''
   );
 }
@@ -3247,7 +3247,7 @@ PAGE_RENDERERS['customers-public'] = () => {
     '<div class="tree-item tree-indent" onclick="filterPublicCustomerTree(this,\'北美\',110)">北美 <span class="count">110</span></div>' +
     '<div class="tree-item tree-indent" onclick="filterPublicCustomerTree(this,\'亚洲\',88)">亚洲 <span class="count">88</span></div>' +
     '</div>' +
-    '<div class="right-content" style="padding:0 16px">' +
+    '<div class="right-content px-16">' +
     '<div class="bulk-toolbar"><div class="flex gap-8 items-center"><span class="text-sm">已选 <strong>0</strong> 条</span><button class="btn btn-sm" onclick="batchClaimPublic()">批量领取</button><button class="btn btn-sm" onclick="batchAssignPublic()">批量分配</button></div></div>' +
     '<div class="flex-between mb-12"><span class="table-info">全部客户 · 523 个客户</span>' +
     '<div class="flex gap-8"><button class="btn btn-sm btn-icon" onclick="openPublicCustomerSearchModal()">🔍</button><button class="btn btn-sm btn-icon" onclick="openCustomerSettingsModal()">⚙</button></div></div>' +
@@ -3405,7 +3405,7 @@ PAGE_RENDERERS['customers-archive'] = () => `
     <div class="toggle-group"><button class="toggle-btn active" onclick="switchToggle(this)">我的建档建议</button><button class="toggle-btn" onclick="switchToggle(this)">团队建档建议</button></div>
     <div class="page-actions">
       <button class="btn btn-sm" onclick="showToast('批量加标签')">加标签</button>
-      <button class="btn btn-sm btn-text" style="color:var(--danger)" onclick="showToast('批量标记不采纳')">标记不采纳</button>
+      <button class="btn btn-sm btn-text text-danger" onclick="showToast('批量标记不采纳')">标记不采纳</button>
       <button class="btn btn-primary" onclick="openConfirmArchiveModal()">建为客户</button>
     </div>
   </div>
@@ -3421,7 +3421,7 @@ PAGE_RENDERERS['customers-archive'] = () => `
     ],
     { checkbox: true, total: 12, pageSize: 10 }
   )}
-  <div class="flex-between mt-12"><span class="text-sm text-muted">已选 0 条</span><button class="btn btn-sm btn-text" style="color:var(--danger)" onclick="showToast('批量标记不采纳')">批量标记不采纳</button></div>
+  <div class="flex-between mt-12"><span class="text-sm text-muted">已选 0 条</span><button class="btn btn-sm btn-text text-danger" onclick="showToast('批量标记不采纳')">批量标记不采纳</button></div>
 `;
 
 // Confirm Archive Modal
@@ -3444,7 +3444,7 @@ PAGE_RENDERERS['customers-dedup'] = () => `
       <select class="filter-select" style="width:160px">
         <option>全部</option><option>公司名称/简称</option><option>客户编号</option><option>邮箱</option><option>邮箱后缀</option><option>联系人名称</option><option>联系电话</option><option>社交账号</option>
       </select>
-      <input class="filter-input" style="flex:1" placeholder="输入公司名称/简称、客户编号、邮箱地址等" />
+      <input class="filter-input flex-1" placeholder="输入公司名称/简称、客户编号、邮箱地址等" />
       <button class="btn btn-primary">查重</button>
     </div>
   </div>
@@ -3468,12 +3468,12 @@ PAGE_RENDERERS['customers-settings'] = () => `
     </div>
     <div class="alert alert-info mb-12">符合移入公海条件时，系统会提前 7 天发送邮件提醒。</div>
     <div class="grid-2">
-      <div class="card" style="border:1px solid var(--border-light);box-shadow:none">
+      <div class="card card-flat">
         <div class="text-bold mb-4">询盘客户180天未成交</div>
         <div class="text-sm text-muted">移入条件: 180 天未成交</div>
         <div class="text-sm text-muted">生效客群: 私海未成交客户（部门）</div>
       </div>
-      <div class="card" style="border:1px solid var(--border-light);box-shadow:none">
+      <div class="card card-flat">
         <div class="text-bold mb-4">目标客户90天未联系</div>
         <div class="text-sm text-muted">移入条件: 90 天未联系</div>
         <div class="text-sm text-muted">生效客群: 非个人未成交（部门）</div>
@@ -3548,12 +3548,12 @@ function openAIAnalysis() { bizAiAnalysisOpen = true; renderContent(); renderBiz
 function toggleBizAiAnalysis() { bizAiAnalysisOpen = !bizAiAnalysisOpen; renderContent(); if (bizListView === 'kanban' && !bizAiAnalysisOpen) renderBizKanban(); }
 function renderBizAiAnalysisPanel() {
   return '<div class="card mb-16 biz-ai-panel">' +
-    '<div class="flex-between mb-12"><div class="card-title" style="margin-bottom:0">✨ AI 商机转化分析 <span class="ai-badge">OKKI AI</span></div>' +
+    '<div class="flex-between mb-12"><div class="card-title mb-0">✨ AI 商机转化分析 <span class="ai-badge">OKKI AI</span></div>' +
     '<div class="flex gap-8"><select class="filter-select"><option>近30天</option><option>近7天</option><option>本季度</option></select><button class="btn btn-sm" onclick="toggleBizAiAnalysis()">收起 ‹</button></div></div>' +
     '<div class="stat-cards mb-12">' +
     '<div class="stat-card"><div class="stat-label">分析商机</div><div class="stat-value">186</div></div>' +
-    '<div class="stat-card" style="border-left:3px solid var(--warning)"><div class="stat-label">停滞商机</div><div class="stat-value text-warning">34</div></div>' +
-    '<div class="stat-card" style="border-left:3px solid var(--success)"><div class="stat-label">预计可赢单</div><div class="stat-value text-success">52</div></div>' +
+    '<div class="stat-card warning"><div class="stat-label">停滞商机</div><div class="stat-value text-warning">34</div></div>' +
+    '<div class="stat-card success"><div class="stat-label">预计可赢单</div><div class="stat-value text-success">52</div></div>' +
     '<div class="stat-card"><div class="stat-label">预计转化率</div><div class="stat-value">28%</div></div>' +
     '</div>' +
     '<div class="alert alert-info">📌 AI 分析：谈判报价阶段停滞商机最多（34 个），主要卡点为价格谈判与样品确认。建议优先推进 DLBV 特单、澳洲 clip-in 批量。</div>' +
@@ -3752,7 +3752,7 @@ function openAIAnalysis() {
 function openNewBusinessDrawer() {
   openDrawer('新建商机', `
     <div class="form-section">
-      <div class="form-section-title">基本信息 <a class="btn-text btn-sm" style="margin-left:auto">显示设置</a></div>
+      <div class="form-section-title">基本信息 <a class="btn-text btn-sm ml-auto">显示设置</a></div>
       ${renderFormField('客户', 'text', {required:true, placeholder:'搜索选择客户'})}
       ${renderFormField('销售流程', 'select', {required:true, options:['开发销售标准流程','维护销售标准流程']})}
       ${renderFormField('商机名称', 'text', {required:true, placeholder:'请输入商机名称'})}
@@ -3836,8 +3836,8 @@ PAGE_RENDERERS['business-detail'] = () => {
         '<div class="timeline"><div class="timeline-item"><div class="tl-time">03-30 16:07</div><div class="tl-title">商机</div><div class="tl-desc">Camila 新建了一个商机</div></div></div>'
       ])}
       </div>
-      <div id="biz_dyn_chat" style="display:none"><div class="card" style="padding:40px;text-align:center;color:var(--text-muted)">AI 聊天旅程：暂无数据</div></div>
-      <div id="biz_dyn_stuck" style="display:none"><div class="card" style="padding:40px;text-align:center;color:var(--text-muted)">AI 谈单卡点：暂无卡点</div></div>
+      <div id="biz_dyn_chat" style="display:none"><div class="card placeholder-card">AI 聊天旅程：暂无数据</div></div>
+      <div id="biz_dyn_stuck" style="display:none"><div class="card placeholder-card">AI 谈单卡点：暂无卡点</div></div>
     </div>`;
 
   const panelProfile = `
@@ -3867,25 +3867,25 @@ PAGE_RENDERERS['business-detail'] = () => {
 
   const panelTx = `
     <div class="card mb-12">
-      <div class="flex-between mb-12"><div class="card-title" style="margin-bottom:0">商机产品</div><button class="btn btn-sm">选择产品</button></div>
+      <div class="flex-between mb-12"><div class="card-title mb-0">商机产品</div><button class="btn btn-sm">选择产品</button></div>
       ${renderTable(['产品编号','产品名称','产品型号','产品价格','产品规格','产品数量','其他费用','产品金额','产品备注'], [], {total:0})}
     </div>
     <div class="card mb-12">
-      <div class="flex-between mb-12"><div class="card-title" style="margin-bottom:0">销售订单</div></div>
+      <div class="flex-between mb-12"><div class="card-title mb-0">销售订单</div></div>
       ${renderTable(['名称','金额','状态'], [], {total:0})}
     </div>
     <div class="card mb-12">
-      <div class="flex-between mb-12"><div class="card-title" style="margin-bottom:0">报价单</div></div>
+      <div class="flex-between mb-12"><div class="card-title mb-0">报价单</div></div>
       ${renderTable(['名称','金额','状态'], [], {total:0})}
     </div>
     <div class="card">
-      <div class="flex-between mb-12"><div class="card-title" style="margin-bottom:0">回款单</div></div>
+      <div class="flex-between mb-12"><div class="card-title mb-0">回款单</div></div>
       <div class="empty-state" style="padding:20px"><div class="empty-text">暂无数据</div></div>
     </div>`;
 
   const panelDocs = `
     <div class="card">
-      <div class="flex-between mb-12"><div class="card-title" style="margin-bottom:0">全部文档</div><button class="btn btn-sm btn-primary">上传文档</button></div>
+      <div class="flex-between mb-12"><div class="card-title mb-0">全部文档</div><button class="btn btn-sm btn-primary">上传文档</button></div>
       ${renderTable(['文件名称','父级文件夹','关联类型','上传方式','文件大小','添加人','上传时间','操作'], [], {total:0})}
     </div>`;
 
@@ -4030,7 +4030,7 @@ PAGE_RENDERERS['okki-recommend'] = () => `
     ${[{name:'Hair World Inc',country:'美国',match:'92%',tag:'高匹配'},{name:'Beauty First GmbH',country:'德国',match:'87%',tag:'新推荐'},{name:'Wig House Ltd',country:'英国',match:'85%',tag:'高匹配'},
        {name:'Salon Pro Trading',country:'澳大利亚',match:'80%',tag:''},{name:'Cheveux Paris',country:'法国',match:'78%',tag:'新推荐'},{name:'Cape Hair SA',country:'南非',match:'75%',tag:''}
     ].map(c => `
-      <div class="card" style="border:1px solid var(--border-light)">
+      <div class="card">
         <div class="flex-between mb-8"><span class="text-bold">${c.name}</span>${c.tag ? `<span class="table-tag primary">${c.tag}</span>` : ''}</div>
         <div class="text-sm text-muted mb-8">🌍 ${c.country} · 匹配度 ${c.match}</div>
         <div class="flex gap-8"><button class="btn btn-sm btn-primary">加入线索</button><button class="btn btn-sm">查看详情</button></div>
@@ -4044,7 +4044,7 @@ PAGE_RENDERERS['okki-search'] = () => `
   <div class="card mb-16">
     <div class="card-title">搜索获客</div>
     <div class="flex gap-8 mb-12">
-      <input class="filter-input" style="flex:1" placeholder="输入关键词搜索全球企业，如 hair wig supplier" />
+      <input class="filter-input flex-1" placeholder="输入关键词搜索全球企业，如 hair wig supplier" />
       <select class="filter-select"><option>Google</option><option>Bing</option><option>Yahoo</option></select>
       <button class="btn btn-primary">搜索</button>
     </div>
@@ -4057,7 +4057,7 @@ PAGE_RENDERERS['okki-trade'] = () => `
   <div class="page-header"><h1 class="page-title">智能贸易数据</h1><div class="page-actions"><button class="btn btn-sm">数据说明</button></div></div>
   <div class="card mb-16">
     <div class="flex gap-8">
-      <input class="filter-input" style="flex:1" placeholder="输入 HS 编码或产品关键词" />
+      <input class="filter-input flex-1" placeholder="输入 HS 编码或产品关键词" />
       <select class="filter-select"><option>进口商</option><option>出口商</option></select>
       <select class="filter-select"><option>全部国家</option><option>美国</option><option>德国</option><option>英国</option></select>
       <button class="btn btn-primary">查询</button>
@@ -4086,7 +4086,7 @@ PAGE_RENDERERS['okki-exhibition'] = () => `
     <div class="card-title">即将举行的展会</div>
     <div class="grid-3">
       ${[{name:'Canton Fair 2026秋季',date:'2026-10-15',location:'广州',exhibitors:2500},{name:'Cosmoprof Asia 2026',date:'2026-11-12',location:'香港',exhibitors:1800},{name:'Beauty World 2026',date:'2026-12-01',location:'迪拜',exhibitors:1200}].map(e => `
-        <div class="card" style="border:1px solid var(--border-light)">
+        <div class="card">
           <div class="text-bold mb-4">${e.name}</div>
           <div class="text-sm text-muted mb-4">📅 ${e.date} · 📍 ${e.location}</div>
           <div class="text-sm mb-8">参展商: ${e.exhibitors}</div>
@@ -4124,7 +4124,7 @@ PAGE_RENDERERS['okki-map'] = () => `
   <div class="page-header"><h1 class="page-title">地图获客</h1></div>
   <div class="card mb-16">
     <div class="flex gap-8">
-      <input class="filter-input" style="flex:1" placeholder="输入地区或行业关键词，如 hair salon New York" />
+      <input class="filter-input flex-1" placeholder="输入地区或行业关键词，如 hair salon New York" />
       <select class="filter-select"><option>Google Maps</option></select>
       <button class="btn btn-primary">搜索</button>
     </div>
@@ -4149,7 +4149,7 @@ PAGE_RENDERERS['okki-social-monitor'] = () => `
      {platform:'Instagram',user:'bonnohair_official',content:'Behind the scenes at our production facility #hairwig #quality',time:'5小时前'},
      {platform:'LinkedIn',user:'Erik Kirste',content:'Looking for reliable hair product suppliers in Asia...',time:'1天前'}
   ].map(d => `
-    <div class="card mb-8" style="border:1px solid var(--border-light);box-shadow:none">
+    <div class="card card-flat mb-8">
       <div class="flex-between mb-8"><span class="table-tag primary">${d.platform}</span><span class="text-sm text-muted">${d.time}</span></div>
       <div class="text-bold mb-4">${d.user}</div>
       <div class="text-sm text-muted mb-8">${d.content}</div>
@@ -4169,7 +4169,7 @@ PAGE_RENDERERS['okki-trade-monitor'] = () => `
      {title:'欧盟新增发制品检测标准',desc:'欧盟发布新的发制品安全检测标准，2027年1月起生效，涉及化学成分和标签要求。',time:'2026-06-18'},
      {title:'巴西市场假发需求持续上升',desc:'巴西市场假发和接发产品需求同比增长 22%，主要集中在中低端市场。',time:'2026-06-15'}
   ].map(d => `
-    <div class="card mb-8" style="border:1px solid var(--border-light);box-shadow:none">
+    <div class="card card-flat mb-8">
       <div class="flex-between mb-8"><span class="text-bold">${d.title}</span><span class="text-sm text-muted">${d.time}</span></div>
       <div class="text-sm text-muted">${d.desc}</div>
     </div>
@@ -4263,8 +4263,8 @@ PAGE_RENDERERS['tx-process'] = () => {
         </div>
         <div class="divider"></div>
         <div class="flex gap-12 mt-12" style="justify-content:center">
-          <div class="flow-node" style="background:var(--primary-light);color:var(--primary)" onclick="showToast('订单毛利分析')">订单毛利</div>
-          <div class="flow-node" style="background:var(--primary-light);color:var(--primary)" onclick="showToast('数据分析')">数据分析</div>
+          <div class="flow-node primary" onclick="showToast('订单毛利分析')">订单毛利</div>
+          <div class="flow-node primary" onclick="showToast('数据分析')">数据分析</div>
         </div>
       </div>
     </div>
@@ -4295,7 +4295,7 @@ PAGE_RENDERERS['tx-product'] = () => {
     ${renderTabs([{label:'全部'},{label:'无规格产品'},{label:'多规格产品'},{label:'组合产品'}])}
     <div class="ai-banner mb-16" style="padding:12px 16px">
       <span>🤖 AI 数据助理：助您精准分析产品表现</span>
-      <button class="btn btn-sm" style="margin-left:auto">我知道了</button>
+      <button class="btn btn-sm ml-auto">我知道了</button>
       <button class="btn btn-sm">立即体验</button>
     </div>
     <div class="page-with-sidebar">
@@ -4307,7 +4307,7 @@ PAGE_RENDERERS['tx-product'] = () => {
         <div class="tree-item tree-indent">辅料 <span class="count">23</span></div>
         <div class="tree-item tree-indent">未分组 <span class="count">50</span></div>
       </div>
-      <div class="right-content" style="padding:0 16px">
+      <div class="right-content px-16">
         <div class="flex-between mb-12">
           <span class="table-info">共 156 个产品</span>
           <div class="btn-group">
@@ -4538,7 +4538,7 @@ PAGE_RENDERERS['tx-order'] = () => {
     <div class="page-header">
       <h1 class="page-title">销售订单</h1>
       <div class="page-actions">
-        <button class="btn btn-sm" style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none" onclick="showToast('AI 数据助理')">🤖 AI 数据助理</button>
+        <button class="btn btn-sm btn-ai" onclick="showToast('AI 数据助理')">🤖 AI 数据助理</button>
         <button class="btn btn-sm" onclick="showToast('识别 PI')">识别PI</button>
         <button class="btn btn-primary" onclick="showToast('新建销售订单')">+ 新建销售订单</button>
       </div>
@@ -4563,7 +4563,7 @@ PAGE_RENDERERS['tx-order'] = () => {
       <div class="stat-card"><div class="stat-label">已回款金额</div><div class="stat-value">USD 987,654</div></div>
       <div class="stat-card"><div class="stat-label">待回款金额</div><div class="stat-value">USD 246,913</div></div>
       <div class="stat-card"><div class="stat-label">产品总金额</div><div class="stat-value">USD 1,100,000</div></div>
-      <div class="stat-card" style="border-left:3px solid var(--warning)"><div class="stat-label">附加费用总金额</div><div class="stat-value">USD 134,567</div></div>
+      <div class="stat-card warning"><div class="stat-label">附加费用总金额</div><div class="stat-value">USD 134,567</div></div>
     </div>
     ${renderTable(
       ['订单号','订单名称','更新日期','订单金额','客户','订单状态','ERP状态','审批状态','当前处理人','订单日期'],
@@ -4731,8 +4731,8 @@ PAGE_RENDERERS['tx-alipay'] = () => `
   </div>
   <div class="stat-cards mb-16">
     <div class="stat-card"><div class="stat-label">账户余额 (USD)</div><div class="stat-value">86,420</div><div class="stat-sub">可用余额 86,420 · 冻结 0</div></div>
-    <div class="stat-card" style="border-left:3px solid var(--success)"><div class="stat-label">累计收款</div><div class="stat-value">524,318</div></div>
-    <div class="stat-card" style="border-left:3px solid var(--warning)"><div class="stat-label">待结算</div><div class="stat-value">12,800</div></div>
+    <div class="stat-card success"><div class="stat-label">累计收款</div><div class="stat-value">524,318</div></div>
+    <div class="stat-card warning"><div class="stat-label">待结算</div><div class="stat-value">12,800</div></div>
     <div class="stat-card"><div class="stat-label">累计提现</div><div class="stat-value">425,098</div></div>
   </div>
   ${renderTabs([{label:'收款记录'},{label:'支付记录'},{label:'提现记录'}], 0, 'aliPay')}
@@ -4771,7 +4771,7 @@ PAGE_RENDERERS['td-completion'] = () => `
         <div class="stat-label">${s.label} <a class="text-primary text-sm">规则</a></div>
         <div class="stat-value">${s.value}</div>
         <div class="stat-sub">目标值: ${s.goal} · 完成率: ${s.rate}</div>
-        ${s.flag==='progress' ? '<div class="text-xs" style="color:var(--warning)">⚠ 进度预警</div>' : s.flag==='done' ? '<div class="text-xs" style="color:var(--success)">✓ 已达标</div>' : '<div class="text-xs text-muted">未设定目标值</div>'}
+        ${s.flag==='progress' ? '<div class="text-xs text-warning">⚠ 进度预警</div>' : s.flag==='done' ? '<div class="text-xs text-success">✓ 已达标</div>' : '<div class="text-xs text-muted">未设定目标值</div>'}
       </div>
     `).join('')}
   </div>
@@ -4816,7 +4816,7 @@ PAGE_RENDERERS['td-manage'] = () => `
   </div>
   <div class="alert alert-info mb-16">💡 设置过程/结果目标后，系统可自动分析完成进度</div>
   <div class="card mb-16">
-    <div class="flex-between mb-12"><div class="card-title" style="margin-bottom:0">我的目标</div><div class="toggle-group"><button class="toggle-btn active" onclick="switchToggle(this)">结果目标</button><button class="toggle-btn" onclick="switchToggle(this)">过程目标</button></div></div>
+    <div class="flex-between mb-12"><div class="card-title mb-0">我的目标</div><div class="toggle-group"><button class="toggle-btn active" onclick="switchToggle(this)">结果目标</button><button class="toggle-btn" onclick="switchToggle(this)">过程目标</button></div></div>
     ${renderTable(
       ['目标名称','目标类型','统计方式','目标周期','目标值','当前完成','完成率','状态'],
       [
@@ -4882,7 +4882,7 @@ PAGE_RENDERERS['td-wall'] = () => `
     </div>
   </div>
   <div class="stat-cards mb-16">
-    <div class="stat-card" style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff">
+    <div class="stat-card stat-card-ai">
       <div style="font-size:14px;opacity:.9">⏱ 离本月结束还剩</div>
       <div style="font-size:28px;font-weight:700;margin:8px 0">9 天</div>
       <div style="font-size:12px;opacity:.8">${new Date().toLocaleDateString('zh-CN')}</div>
@@ -4948,7 +4948,7 @@ PAGE_RENDERERS['td-ai-monitor'] = () => `
   <div class="page-header"><h1 class="page-title">AI 数据监测</h1></div>
   <div class="card mb-16">
     <div class="flex-between">
-      <div><div class="card-title" style="margin-bottom:0">🤖 AI 数据助理</div><div class="text-sm text-muted">AI智能监测您的数据变化，利用大模型技术多视角监测数据差异</div></div>
+      <div><div class="card-title mb-0">🤖 AI 数据助理</div><div class="text-sm text-muted">AI智能监测您的数据变化，利用大模型技术多视角监测数据差异</div></div>
     </div>
     <div class="divider"></div>
     <div class="card-title">推荐问题</div>
@@ -4977,8 +4977,8 @@ PAGE_RENDERERS['td-ai-monitor'] = () => `
       </div>
       <div class="text-bold mb-4">${c.title}</div>
       <div class="text-sm text-muted mb-8">${c.desc}</div>
-      <div class="text-sm" style="color:var(--primary)">💡 ${c.sug}</div>
-      ${c.risk ? `<div class="text-sm mt-4" style="color:var(--danger)">⚠ ${c.risk}</div>` : ''}
+      <div class="text-sm text-primary">💡 ${c.sug}</div>
+      ${c.risk ? `<div class="text-sm mt-4 text-danger">⚠ ${c.risk}</div>` : ''}
     </div>
   `).join('')}
   <div class="card">
@@ -4995,7 +4995,7 @@ PAGE_RENDERERS['td-ai-analysis'] = () => `
   <div class="page-header"><h1 class="page-title">AI 数据分析</h1></div>
   <div class="card mb-16">
     <div class="flex-between">
-      <div><div class="card-title" style="margin-bottom:0">🤖 AI 数据助理</div><div class="text-sm text-muted">您可以问邮件、线索、客户、商机、订单相关的问题</div></div>
+      <div><div class="card-title mb-0">🤖 AI 数据助理</div><div class="text-sm text-muted">您可以问邮件、线索、客户、商机、订单相关的问题</div></div>
     </div>
     <div class="divider"></div>
     <div class="card-title">分析范围</div>
@@ -5013,7 +5013,7 @@ PAGE_RENDERERS['td-ai-analysis'] = () => `
     <div class="text-sm text-muted">建议包含时间范围、对象、指标三个要素，例如"本季度各部门成交订单金额对比"。可叠加维度细分到成员、地区、来源等。</div>
     <div class="divider"></div>
     <div class="flex gap-8">
-      <input class="filter-input" style="flex:1" placeholder="输入您的分析问题..." />
+      <input class="filter-input flex-1" placeholder="输入您的分析问题..." />
       <button class="btn btn-primary">生成分析</button>
     </div>
   </div>
@@ -5119,7 +5119,7 @@ PAGE_RENDERERS['td-report'] = () => {
         <span class="text-sm text-muted">数据更新于 2026-06-21 09:00</span>
         <button class="btn btn-sm">🔄 刷新</button>
         <button class="btn btn-sm">订阅</button>
-        <button class="btn btn-sm" style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none">🤖 AI 数据助理</button>
+        <button class="btn btn-sm btn-ai">🤖 AI 数据助理</button>
       </div>
     </div>
     ${renderTabs(tabs, 0, 'tdReport')}
@@ -5182,7 +5182,7 @@ function openWriteFollowDrawer() {
     <div class="form-section">
       <div class="form-section-title">跟进内容</div>
       <div class="flex gap-8 mb-8">
-        <button class="btn btn-sm" style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none" onclick="showToast('AI 已根据近期沟通生成跟进内容')">🤖 AI 写跟进</button>
+        <button class="btn btn-sm btn-ai" onclick="showToast('AI 已根据近期沟通生成跟进内容')">🤖 AI 写跟进</button>
         <select class="filter-select" onchange="showToast('已套用模板：'+this.value)"><option>选择跟进模板</option><option>询盘首次跟进</option><option>报价后跟进</option><option>样品确认跟进</option><option>催单跟进</option></select>
       </div>
       <textarea class="form-textarea" placeholder="请输入跟进内容..." style="min-height:120px"></textarea>
@@ -5263,9 +5263,9 @@ PAGE_RENDERERS['td-work-report'] = () => {
      ['合计','--','84','76','71','5','90%']],
     {total:5})}`;
   const panelTpl = `${renderTable(['模板名称','报告类型','提交频率','截止时间','推送方式','状态','操作'],
-    [['开发日报','日报','每天','17:30','系统+钉钉','<span class="table-tag success">启用</span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
-     ['周报','周报','每周五','18:00','系统','<span class="table-tag success">启用</span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
-     ['月报','月报','每月最后一天','18:00','系统','<span class="table-tag">停用</span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>']],
+    [['开发日报','日报','每天','17:30','系统+钉钉','<span class="table-tag success">启用</span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],
+     ['周报','周报','每周五','18:00','系统','<span class="table-tag success">启用</span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],
+     ['月报','月报','每月最后一天','18:00','系统','<span class="table-tag">停用</span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>']],
     {total:3})}
     <div class="mt-12"><button class="btn btn-primary" onclick="navigateTo('enterprise','ent-work-report-tpl')">+ 新建模板</button></div>`;
   return `
@@ -5435,8 +5435,8 @@ function openFullScheduleModal() {
 PAGE_RENDERERS['collab-approval'] = () => {
   const tabs = [{label:'由我审批（待办）'},{label:'由我审批（已办）'},{label:'我提交的审批'}];
   const todo = renderTable(['审批标题','审批类型','发起人','发起时间','金额','操作'],
-    [['Bono Hair 报价单审批','报价单状态变更','Bambi','2026-06-21 14:20','¥38,900','<button class="btn btn-sm btn-primary">同意</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">拒绝</button>'],
-     ['Pacific Corp 费用单审批','费用单','Jade','2026-06-21 11:00','¥2,400','<button class="btn btn-sm btn-primary">同意</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">拒绝</button>']],
+    [['Bono Hair 报价单审批','报价单状态变更','Bambi','2026-06-21 14:20','¥38,900','<button class="btn btn-sm btn-primary">同意</button> <button class="btn btn-sm btn-text text-danger">拒绝</button>'],
+     ['Pacific Corp 费用单审批','费用单','Jade','2026-06-21 11:00','¥2,400','<button class="btn btn-sm btn-primary">同意</button> <button class="btn btn-sm btn-text text-danger">拒绝</button>']],
     {total:2});
   const done = renderTable(['审批标题','审批类型','发起人','发起时间','金额','结果','处理时间'],
     [['SWISS HAIR CLUB 回款审批','回款登记','Camila','2026-06-20','¥45,200','<span class="table-tag success">已同意</span>','2026-06-20 16:30']],
@@ -5449,7 +5449,7 @@ PAGE_RENDERERS['collab-approval'] = () => {
     <div class="page-header">
       <h1 class="page-title">审批</h1>
       <div class="page-actions">
-        <button class="btn btn-sm" style="color:var(--danger)">🔥 App&钉钉便捷审批</button>
+        <button class="btn btn-sm text-danger">🔥 App&钉钉便捷审批</button>
         <button class="btn btn-sm" onclick="navigateTo('enterprise','ent-approval-flow')">审批流管理</button>
       </div>
     </div>
@@ -5483,7 +5483,7 @@ PAGE_RENDERERS['collab-cloud'] = () => `
       <div class="tree-item">成员文档</div>
       <div class="tree-item">回收站</div>
     </div>
-    <div class="right-content" style="padding:0 16px">
+    <div class="right-content px-16">
       ${renderTable(['文件名','类型','大小','创建人','修改时间','操作'],
         [['📁 客户资料','文件夹','--','Admin','2026-06-20','<button class="btn btn-sm btn-text">打开</button> <button class="btn btn-sm btn-text">共享</button>'],
          ['📄 报价单模板.docx','文档','128KB','Bambi','2026-06-19','<button class="btn btn-sm btn-text">下载</button> <button class="btn btn-sm btn-text">共享</button>'],
@@ -5509,9 +5509,9 @@ PAGE_RENDERERS['collab-contacts'] = () => `
     <div class="left-panel">
       <div class="tree-item active">全部</div>
       <div class="tree-item">未分组</div>
-      <div class="flex gap-8" style="padding:8px 16px"><button class="btn btn-sm">修改分组</button><button class="btn btn-sm">编辑</button><button class="btn btn-sm btn-text" style="color:var(--danger)">删除成员</button></div>
+      <div class="flex gap-8" style="padding:8px 16px"><button class="btn btn-sm">修改分组</button><button class="btn btn-sm">编辑</button><button class="btn btn-sm btn-text text-danger">删除成员</button></div>
     </div>
-    <div class="right-content" style="padding:0 16px">
+    <div class="right-content px-16">
       <input class="filter-input w-full mb-12" placeholder="搜索名称、电话、备注" />
       ${renderTable(['昵称','邮箱','电话','分组名','备注'],[
         ['John Smith','john@example.com','+1 234 567 890','客户','VIP客户'],
@@ -5650,9 +5650,9 @@ PAGE_RENDERERS['ent-roles'] = () => `
     ['角色','成员','操作'],
     [
       ['系统管理员','<a class="text-primary">3 人 · 管理</a>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text">查看</button>'],
-      ['普通用户','<a class="text-primary">25 人 · 管理</a>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text">查看</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
-      ['部门管理员','<a class="text-primary">5 人 · 管理</a>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text">查看</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
-      ['财务管理员','<a class="text-primary">2 人 · 管理</a>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text">查看</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
+      ['普通用户','<a class="text-primary">25 人 · 管理</a>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text">查看</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],
+      ['部门管理员','<a class="text-primary">5 人 · 管理</a>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text">查看</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],
+      ['财务管理员','<a class="text-primary">2 人 · 管理</a>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text">查看</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],
     ],
     { total: 4 }
   )}
@@ -5667,14 +5667,14 @@ PAGE_RENDERERS['ent-fields'] = () => `
   ${renderTable(
     ['字段','类型','可见于','归属','操作'],
     [
-      ['客户等级','下拉单选','线索、客户管理、商机','公司信息','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
-      ['广告UTM','文本','线索、客户管理','公司信息','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
-      ['需求和售后','多行文本','客户管理','公司信息','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
-      ['付款方式1','下拉多选','客户管理','公司信息','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
-      ['首次成交时间','日期','客户管理','公司信息','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
-      ['谷歌广告-关键词','文本','客户管理','公司信息','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
-      ['询盘云跟进次数','数值','线索管理','联系信息','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
-      ['职位/职级','下拉多选','客户管理','联系信息','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
+      ['客户等级','下拉单选','线索、客户管理、商机','公司信息','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],
+      ['广告UTM','文本','线索、客户管理','公司信息','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],
+      ['需求和售后','多行文本','客户管理','公司信息','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],
+      ['付款方式1','下拉多选','客户管理','公司信息','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],
+      ['首次成交时间','日期','客户管理','公司信息','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],
+      ['谷歌广告-关键词','文本','客户管理','公司信息','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],
+      ['询盘云跟进次数','数值','线索管理','联系信息','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],
+      ['职位/职级','下拉多选','客户管理','联系信息','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],
     ],
     { total: 45 }
   )}
@@ -5683,12 +5683,12 @@ PAGE_RENDERERS['ent-fields'] = () => `
 // Enterprise Customer Settings
 PAGE_RENDERERS['ent-customer-settings'] = () => {
   const g = 'entCustSet';
-  const stagePanel = `<div class="card"><div class="text-sm text-muted mb-12">按照业务进展阶段划分客户状态，帮助业务员针对性跟进客户，提高成单率。</div><div class="flex-between mb-12"><span class="card-title" style="margin-bottom:0">客户阶段</span><button class="btn btn-sm btn-primary">+ 新增阶段</button></div>${renderTable(['阶段名称','排序','默认','操作'],[['待跟进','1','是','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],['询盘客户','2','否','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],['样单客户','3','否','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],['成交客户','4','否','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],['复购客户','5','否','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>']],{total:5})}</div>`;
-  const typePanel = `<div class="card"><div class="text-sm text-muted mb-12">对客户进行分类管理，可用于分层运营和筛选。</div><div class="flex-between mb-12"><span class="card-title" style="margin-bottom:0">客户类型</span><button class="btn btn-sm btn-primary">+ 新增类型</button></div>${renderTable(['类型名称','排序','操作'],[['VIP 客户','1','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],['普通客户','2','<button class="btn btn-sm btn-text">编辑</button>'],['潜在客户','3','<button class="btn btn-sm btn-text">编辑</button>']],{total:3})}</div>`;
+  const stagePanel = `<div class="card"><div class="text-sm text-muted mb-12">按照业务进展阶段划分客户状态，帮助业务员针对性跟进客户，提高成单率。</div><div class="flex-between mb-12"><span class="card-title mb-0">客户阶段</span><button class="btn btn-sm btn-primary">+ 新增阶段</button></div>${renderTable(['阶段名称','排序','默认','操作'],[['待跟进','1','是','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],['询盘客户','2','否','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],['样单客户','3','否','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],['成交客户','4','否','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],['复购客户','5','否','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>']],{total:5})}</div>`;
+  const typePanel = `<div class="card"><div class="text-sm text-muted mb-12">对客户进行分类管理，可用于分层运营和筛选。</div><div class="flex-between mb-12"><span class="card-title mb-0">客户类型</span><button class="btn btn-sm btn-primary">+ 新增类型</button></div>${renderTable(['类型名称','排序','操作'],[['VIP 客户','1','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],['普通客户','2','<button class="btn btn-sm btn-text">编辑</button>'],['潜在客户','3','<button class="btn btn-sm btn-text">编辑</button>']],{total:3})}</div>`;
   const publicPanel = `<div class="card"><div class="text-sm text-muted mb-12">配置公海客户回收规则与分组。</div><div class="grid-2">${renderFormField('公海回收规则','select',{options:['90天未成交回收','180天未联系回收','不自动回收']})}${renderFormField('公海分组','select',{options:['默认公海分组','沉睡客户分组']})}${renderFormField('领取上限(个/天)','text',{value:'50'})}${renderFormField('领取冷却(小时)','text',{value:'24'})}</div><div class="mt-12"><button class="btn btn-primary btn-sm">保存公海规则</button></div></div>`;
   const followPanel = `<div class="card"><div class="text-sm text-muted mb-12">配置客户跟进频率与超时提醒。</div><div class="grid-2">${renderFormField('跟进频率提醒','select',{options:['开启','关闭']})}${renderFormField('超时未跟进(天)','text',{value:'7'})}${renderFormField('提醒方式','select',{options:['站内消息','邮件','不提醒']})}${renderFormField('免跟进阶段','select',{options:['成交客户','复购客户']})}</div><div class="mt-12"><button class="btn btn-primary btn-sm">保存跟进规则</button></div></div>`;
   const dealPanel = `<div class="card"><div class="text-sm text-muted mb-12">定义客户成交判定规则。</div><div class="grid-2">${renderFormField('成交判定依据','select',{options:['签订销售订单','回款到账','样品单']})}${renderFormField('自动标记成交','select',{options:['是','否']})}${renderFormField('成交客户保护期(天)','text',{value:'365'})}${renderFormField('复购判定周期(天)','text',{value:'180'})}</div><div class="mt-12"><button class="btn btn-primary btn-sm">保存成交规则</button></div></div>`;
-  const blacklistPanel = `<div class="card"><div class="text-sm text-muted mb-12">加入黑名单的邮箱/公司不再建档或收件。</div><div class="flex-between mb-12"><span class="card-title" style="margin-bottom:0">建档黑名单</span><button class="btn btn-sm btn-primary">+ 新增</button></div>${renderTable(['类型','内容','添加时间','操作'],[['邮箱','spam@bad.com','2026-05-01','<button class="btn btn-sm btn-text" style="color:var(--danger)">移除</button>'],['公司','Scam Corp','2026-04-12','<button class="btn btn-sm btn-text" style="color:var(--danger)">移除</button>']],{total:2})}</div>`;
+  const blacklistPanel = `<div class="card"><div class="text-sm text-muted mb-12">加入黑名单的邮箱/公司不再建档或收件。</div><div class="flex-between mb-12"><span class="card-title mb-0">建档黑名单</span><button class="btn btn-sm btn-primary">+ 新增</button></div>${renderTable(['类型','内容','添加时间','操作'],[['邮箱','spam@bad.com','2026-05-01','<button class="btn btn-sm btn-text text-danger">移除</button>'],['公司','Scam Corp','2026-04-12','<button class="btn btn-sm btn-text text-danger">移除</button>']],{total:2})}</div>`;
   const limitPanel = `<div class="card"><div class="text-sm text-muted mb-12">限制业务员可拥有的私海客户上限。</div><div class="grid-2">${renderFormField('私海客户上限','text',{value:'500'})}${renderFormField('超额处理','select',{options:['禁止新增','提示并允许']})}${renderFormField('按职级差异化','select',{options:['是','否']})}${renderFormField('超额提醒','select',{options:['开启','关闭']})}</div><div class="mt-12"><button class="btn btn-primary btn-sm">保存上限设置</button></div></div>`;
   const dedupPanel = `<div class="card"><div class="text-sm text-muted mb-12">配置客户查重规则，避免重复建档。</div><div class="grid-2">${renderFormField('查重字段','select',{options:['公司名称','邮箱后缀','联系电话']})}${renderFormField('查重范围','select',{options:['全库','我的客户','私海+公海']})}${renderFormField('重复处理','select',{options:['提示人工合并','自动合并','阻止建档']})}${renderFormField('模糊匹配','select',{options:['开启','关闭']})}</div><div class="mt-12"><button class="btn btn-primary btn-sm">保存查重设置</button></div></div>`;
   const dynPanel = `<div class="card"><div class="text-sm text-muted mb-12">配置客户动态记录范围与显示。</div><div class="grid-2">${renderFormField('记录动态类型','select',{options:['全部','邮件+跟进','仅跟进']})}${renderFormField('AI 动态生成','select',{options:['开启','关闭']})}${renderFormField('动态保留时长','select',{options:['永久','1年','6个月']})}${renderFormField('同步邮件动态','select',{options:['开启','关闭']})}</div><div class="mt-12"><button class="btn btn-primary btn-sm">保存动态设置</button></div></div>`;
@@ -5722,20 +5722,20 @@ PAGE_RENDERERS['ent-field-display'] = () => `
   <div class="alert alert-info mb-12">💡 配置各模块的字段显示/隐藏和顺序，影响列表页和详情页展示</div>
   <div class="card">
     ${renderTable(['字段名称','字段类型','是否必填','显示','排序','操作'],
-      [['公司名称','文本','是','<span class="switch-track on" style="display:inline-block;transform:scale(.6)"></span>','1','<button class="btn btn-sm btn-text">编辑</button>'],
-       ['国家地区','下拉选择','否','<span class="switch-track on" style="display:inline-block;transform:scale(.6)"></span>','2','<button class="btn btn-sm btn-text">编辑</button>'],
-       ['客户来源','下拉选择','否','<span class="switch-track on" style="display:inline-block;transform:scale(.6)"></span>','3','<button class="btn btn-sm btn-text">编辑</button>'],
-       ['客户等级','下拉选择','否','<span class="switch-track" style="display:inline-block;transform:scale(.6)"></span>','4','<button class="btn btn-sm btn-text">编辑</button>'],
-       ['广告UTM','文本','否','<span class="switch-track on" style="display:inline-block;transform:scale(.6)"></span>','5','<button class="btn btn-sm btn-text">编辑</button>']],
+      [['公司名称','文本','是','<span class="switch-track on switch-sm"></span>','1','<button class="btn btn-sm btn-text">编辑</button>'],
+       ['国家地区','下拉选择','否','<span class="switch-track on switch-sm"></span>','2','<button class="btn btn-sm btn-text">编辑</button>'],
+       ['客户来源','下拉选择','否','<span class="switch-track on switch-sm"></span>','3','<button class="btn btn-sm btn-text">编辑</button>'],
+       ['客户等级','下拉选择','否','<span class="switch-track switch-sm"></span>','4','<button class="btn btn-sm btn-text">编辑</button>'],
+       ['广告UTM','文本','否','<span class="switch-track on switch-sm"></span>','5','<button class="btn btn-sm btn-text">编辑</button>']],
       {total:45})}
   </div>
 `;
 
 PAGE_RENDERERS['ent-lead-settings'] = () => {
   const g = 'entLeadSet';
-  const statusPanel = `<div class="card"><div class="flex-between mb-12"><span class="card-title" style="margin-bottom:0">线索状态管理</span><button class="btn btn-sm btn-primary">+ 新增状态</button></div>${renderTable(['状态名称','排序','默认','操作'],[['待处理','1','是','<button class="btn btn-sm btn-text">编辑</button>'],['完善信息','2','否','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],['初步触达','3','否','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],['联系互动','4','否','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>']],{total:4})}</div>`;
-  const sourcePanel = `<div class="card"><div class="flex-between mb-12"><span class="card-title" style="margin-bottom:0">线索来源管理</span><button class="btn btn-sm btn-primary">+ 新增来源</button></div>${renderTable(['来源名称','来源分类','排序','操作'],[['主动开发','渠道获客','1','<button class="btn btn-sm btn-text">编辑</button>'],['官网询盘','线上询盘','2','<button class="btn btn-sm btn-text">编辑</button>'],['阿里巴巴','线上询盘','3','<button class="btn btn-sm btn-text">编辑</button>'],['展会','线下','4','<button class="btn btn-sm btn-text">编辑</button>']],{total:4})}</div>`;
-  const tagPanel = `<div class="card"><div class="flex-between mb-12"><span class="card-title" style="margin-bottom:0">线索标签管理</span><button class="btn btn-sm btn-primary">+ 新增标签</button></div>${renderTable(['标签名称','标签颜色','使用数','操作'],[['高意向','红','15','<button class="btn btn-sm btn-text">编辑</button>'],['新询盘','蓝','30','<button class="btn btn-sm btn-text">编辑</button>'],['活跃客户','绿','22','<button class="btn btn-sm btn-text">编辑</button>']],{total:3})}</div>`;
+  const statusPanel = `<div class="card"><div class="flex-between mb-12"><span class="card-title mb-0">线索状态管理</span><button class="btn btn-sm btn-primary">+ 新增状态</button></div>${renderTable(['状态名称','排序','默认','操作'],[['待处理','1','是','<button class="btn btn-sm btn-text">编辑</button>'],['完善信息','2','否','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],['初步触达','3','否','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],['联系互动','4','否','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>']],{total:4})}</div>`;
+  const sourcePanel = `<div class="card"><div class="flex-between mb-12"><span class="card-title mb-0">线索来源管理</span><button class="btn btn-sm btn-primary">+ 新增来源</button></div>${renderTable(['来源名称','来源分类','排序','操作'],[['主动开发','渠道获客','1','<button class="btn btn-sm btn-text">编辑</button>'],['官网询盘','线上询盘','2','<button class="btn btn-sm btn-text">编辑</button>'],['阿里巴巴','线上询盘','3','<button class="btn btn-sm btn-text">编辑</button>'],['展会','线下','4','<button class="btn btn-sm btn-text">编辑</button>']],{total:4})}</div>`;
+  const tagPanel = `<div class="card"><div class="flex-between mb-12"><span class="card-title mb-0">线索标签管理</span><button class="btn btn-sm btn-primary">+ 新增标签</button></div>${renderTable(['标签名称','标签颜色','使用数','操作'],[['高意向','红','15','<button class="btn btn-sm btn-text">编辑</button>'],['新询盘','蓝','30','<button class="btn btn-sm btn-text">编辑</button>'],['活跃客户','绿','22','<button class="btn btn-sm btn-text">编辑</button>']],{total:3})}</div>`;
   const assignPanel = `<div class="card"><div class="text-sm text-muted mb-12">配置线索自动分配规则。</div><div class="grid-2">${renderFormField('分配方式','select',{options:['轮询分配','按区域分配','按职级分配','手动分配']})}${renderFormField('默认接收人','select',{options:['张伟','李娜','Bambi']})}${renderFormField('超额提醒','select',{options:['开启','关闭']})}${renderFormField('分配范围','select',{options:['全部线索','未分配线索']})}</div><div class="mt-12"><button class="btn btn-primary btn-sm">保存分配规则</button></div></div>`;
   const scorePanel = `<div class="card"><div class="text-sm text-muted mb-12">配置线索评分规则，自动计算意向分。</div>${renderTable(['评分维度','条件','分值','操作'],[['邮件打开','打开任意邮件','+10','<button class="btn btn-sm btn-text">编辑</button>'],['询盘行为','提交询盘表单','+30','<button class="btn btn-sm btn-text">编辑</button>'],['网站访问','浏览产品页','+5','<button class="btn btn-sm btn-text">编辑</button>']],{total:3})}</div>`;
   const convertPanel = `<div class="card"><div class="text-sm text-muted mb-12">配置线索转化为客户的规则与字段映射。</div><div class="grid-2">${renderFormField('转化条件','select',{options:['手动转化','达到评分阈值自动转化']})}${renderFormField('转化阈值','text',{value:'60'})}${renderFormField('转化后线索状态','select',{options:['已完成','删除']})}${renderFormField('自动建联系人','select',{options:['是','否']})}</div><div class="mt-12"><button class="btn btn-primary btn-sm">保存转化规则</button></div></div>`;
@@ -5748,9 +5748,9 @@ PAGE_RENDERERS['ent-lead-settings'] = () => {
 
 PAGE_RENDERERS['ent-biz-settings'] = () => {
   const g = 'entBizSet';
-  const flowPanel = `<div class="card"><div class="flex-between mb-12"><span class="card-title" style="margin-bottom:0">销售流程管理</span><button class="btn btn-sm btn-primary">+ 新建销售流程</button></div>${renderTable(['流程名称','阶段数','商机数','创建时间','状态','操作'],[['开发销售标准流程','6','3,200','2024-01-15','<span class="table-tag success">启用中</span>','<button class="btn btn-sm btn-text">编辑</button>'],['维护销售标准流程','8','1,986','2024-01-15','<span class="table-tag success">启用中</span>','<button class="btn btn-sm btn-text">编辑</button>']],{total:2})}</div>`;
-  const lostPanel = `<div class="card"><div class="flex-between mb-12"><span class="card-title" style="margin-bottom:0">输单原因管理</span><button class="btn btn-sm btn-primary">+ 新增原因</button></div>${renderTable(['原因名称','分类','使用次数','操作'],[['价格过高','价格','128','<button class="btn btn-sm btn-text">编辑</button>'],['选择竞品','竞品','95','<button class="btn btn-sm btn-text">编辑</button>'],['需求取消','客户','42','<button class="btn btn-sm btn-text">编辑</button>']],{total:3})}</div>`;
-  const tagPanel = `<div class="card"><div class="flex-between mb-12"><span class="card-title" style="margin-bottom:0">商机标签管理</span><button class="btn btn-sm btn-primary">+ 新增标签</button></div>${renderTable(['标签名称','颜色','使用数','操作'],[['高意向','红','56','<button class="btn btn-sm btn-text">编辑</button>'],['复购机会','蓝','34','<button class="btn btn-sm btn-text">编辑</button>'],['紧急','橙','18','<button class="btn btn-sm btn-text">编辑</button>']],{total:3})}</div>`;
+  const flowPanel = `<div class="card"><div class="flex-between mb-12"><span class="card-title mb-0">销售流程管理</span><button class="btn btn-sm btn-primary">+ 新建销售流程</button></div>${renderTable(['流程名称','阶段数','商机数','创建时间','状态','操作'],[['开发销售标准流程','6','3,200','2024-01-15','<span class="table-tag success">启用中</span>','<button class="btn btn-sm btn-text">编辑</button>'],['维护销售标准流程','8','1,986','2024-01-15','<span class="table-tag success">启用中</span>','<button class="btn btn-sm btn-text">编辑</button>']],{total:2})}</div>`;
+  const lostPanel = `<div class="card"><div class="flex-between mb-12"><span class="card-title mb-0">输单原因管理</span><button class="btn btn-sm btn-primary">+ 新增原因</button></div>${renderTable(['原因名称','分类','使用次数','操作'],[['价格过高','价格','128','<button class="btn btn-sm btn-text">编辑</button>'],['选择竞品','竞品','95','<button class="btn btn-sm btn-text">编辑</button>'],['需求取消','客户','42','<button class="btn btn-sm btn-text">编辑</button>']],{total:3})}</div>`;
+  const tagPanel = `<div class="card"><div class="flex-between mb-12"><span class="card-title mb-0">商机标签管理</span><button class="btn btn-sm btn-primary">+ 新增标签</button></div>${renderTable(['标签名称','颜色','使用数','操作'],[['高意向','红','56','<button class="btn btn-sm btn-text">编辑</button>'],['复购机会','蓝','34','<button class="btn btn-sm btn-text">编辑</button>'],['紧急','橙','18','<button class="btn btn-sm btn-text">编辑</button>']],{total:3})}</div>`;
   const layoutPanel = `<div class="card"><div class="text-sm text-muted mb-12">配置商机详情页布局与字段显示。</div>${renderTable(['布局区域','是否显示','操作'],[['商机主卡','<span class="table-tag success">显示</span>','<button class="btn btn-sm btn-text">编辑</button>'],['阶段进度条','<span class="table-tag success">显示</span>','<button class="btn btn-sm btn-text">编辑</button>'],['交易 Tab','<span class="table-tag success">显示</span>','<button class="btn btn-sm btn-text">编辑</button>'],['关联联系人','<span class="table-tag success">显示</span>','<button class="btn btn-sm btn-text">编辑</button>']],{total:4})}</div>`;
   return `
     <div class="page-header"><h1 class="page-title">商机设置</h1></div>
@@ -5770,16 +5770,16 @@ PAGE_RENDERERS['ent-source-settings'] = () => `
       <div class="tree-item">线下渠道</div>
       <div class="flex gap-8" style="padding:8px 16px"><button class="btn btn-sm">+ 新增分类</button></div>
     </div>
-    <div class="right-content" style="padding:0 16px">
-      <div class="flex-between mb-12"><span class="card-title" style="margin-bottom:0">客户/线索来源字典</span><button class="btn btn-sm btn-primary" onclick="openEditSourceModal()">+ 新增来源</button></div>
+    <div class="right-content px-16">
+      <div class="flex-between mb-12"><span class="card-title mb-0">客户/线索来源字典</span><button class="btn btn-sm btn-primary" onclick="openEditSourceModal()">+ 新增来源</button></div>
       <div class="text-sm text-muted mb-12">来源分类与来源项支持联动：选择分类后右侧仅显示该分类下的来源；来源项可设置子来源与默认跟进规则。</div>
       ${renderTable(['来源名称','来源分类','子来源数','默认跟进规则','排序','操作'],
-        [['主动开发','渠道获客','3','24h 内首次联系','1','<button class="btn btn-sm btn-text" onclick="openEditSourceModal(\'主动开发\')">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
-         ['官网询盘','线上询盘','2','自动分配并 12h 内联系','2','<button class="btn btn-sm btn-text" onclick="openEditSourceModal(\'官网询盘\')">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
-         ['阿里巴巴','线上询盘','5','自动分配并 24h 内联系','3','<button class="btn btn-sm btn-text" onclick="openEditSourceModal(\'阿里巴巴\')">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
-         ['社媒','渠道获客','4','48h 内首次联系','4','<button class="btn btn-sm btn-text" onclick="openEditSourceModal(\'社媒\')">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
-         ['展会','线下渠道','2','展会后 3 天内复盘','5','<button class="btn btn-sm btn-text" onclick="openEditSourceModal(\'展会\')">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
-         ['TM 咨询','线上询盘','1','实时分配','6','<button class="btn btn-sm btn-text" onclick="openEditSourceModal(\'TM 咨询\')">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>']],
+        [['主动开发','渠道获客','3','24h 内首次联系','1','<button class="btn btn-sm btn-text" onclick="openEditSourceModal(\'主动开发\')">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],
+         ['官网询盘','线上询盘','2','自动分配并 12h 内联系','2','<button class="btn btn-sm btn-text" onclick="openEditSourceModal(\'官网询盘\')">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],
+         ['阿里巴巴','线上询盘','5','自动分配并 24h 内联系','3','<button class="btn btn-sm btn-text" onclick="openEditSourceModal(\'阿里巴巴\')">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],
+         ['社媒','渠道获客','4','48h 内首次联系','4','<button class="btn btn-sm btn-text" onclick="openEditSourceModal(\'社媒\')">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],
+         ['展会','线下渠道','2','展会后 3 天内复盘','5','<button class="btn btn-sm btn-text" onclick="openEditSourceModal(\'展会\')">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],
+         ['TM 咨询','线上询盘','1','实时分配','6','<button class="btn btn-sm btn-text" onclick="openEditSourceModal(\'TM 咨询\')">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>']],
         {total:6})}
     </div>
   </div>
@@ -5803,12 +5803,12 @@ function openEditSourceModal(name) {
 PAGE_RENDERERS['ent-dedup-settings'] = () => {
   const tabs = [{label:'客户判重'},{label:'线索判重'},{label:'联系人判重'}];
   const custPanel = `<div class="text-sm text-muted mb-12">设置新建客户时的查重字段与处理方式</div>
-    <div class="flex-between mb-12"><span class="card-title" style="margin-bottom:0">查重字段</span><button class="btn btn-sm btn-primary">+ 新增字段</button></div>
+    <div class="flex-between mb-12"><span class="card-title mb-0">查重字段</span><button class="btn btn-sm btn-primary">+ 新增字段</button></div>
     ${renderTable(['字段名称','字段类型','匹配方式','启用','操作'],
-      [['公司名称','文本','精确匹配','<span class="switch-track on" style="display:inline-block;transform:scale(.6)" onclick="this.classList.toggle(\'on\')"></span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
-       ['邮箱后缀','文本','后缀匹配','<span class="switch-track on" style="display:inline-block;transform:scale(.6)" onclick="this.classList.toggle(\'on\')"></span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
-       ['公司网址','文本','域名匹配','<span class="switch-track on" style="display:inline-block;transform:scale(.6)" onclick="this.classList.toggle(\'on\')"></span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
-       ['联系电话','文本','精确匹配','<span class="switch-track" style="display:inline-block;transform:scale(.6)" onclick="this.classList.toggle(\'on\')"></span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>']],
+      [['公司名称','文本','精确匹配','<span class="switch-track on switch-sm" onclick="this.classList.toggle(\'on\')"></span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],
+       ['邮箱后缀','文本','后缀匹配','<span class="switch-track on switch-sm" onclick="this.classList.toggle(\'on\')"></span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],
+       ['公司网址','文本','域名匹配','<span class="switch-track on switch-sm" onclick="this.classList.toggle(\'on\')"></span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],
+       ['联系电话','文本','精确匹配','<span class="switch-track switch-sm" onclick="this.classList.toggle(\'on\')"></span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>']],
       {total:8})}
     <div class="card mt-16">
       <div class="card-title mb-8">判重处理与范围</div>
@@ -5821,11 +5821,11 @@ PAGE_RENDERERS['ent-dedup-settings'] = () => {
       <div class="mt-12"><button class="btn btn-primary btn-sm">保存判重设置</button></div>
     </div>`;
   const leadPanel = `<div class="text-sm text-muted mb-12">设置新建线索时的查重字段与处理方式</div>
-    <div class="flex-between mb-12"><span class="card-title" style="margin-bottom:0">查重字段</span><button class="btn btn-sm btn-primary">+ 新增字段</button></div>
+    <div class="flex-between mb-12"><span class="card-title mb-0">查重字段</span><button class="btn btn-sm btn-primary">+ 新增字段</button></div>
     ${renderTable(['字段名称','字段类型','匹配方式','启用','操作'],
-      [['联系人邮箱','文本','精确匹配','<span class="switch-track on" style="display:inline-block;transform:scale(.6)" onclick="this.classList.toggle(\'on\')"></span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
-       ['联系人手机号','文本','精确匹配','<span class="switch-track" style="display:inline-block;transform:scale(.6)" onclick="this.classList.toggle(\'on\')"></span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
-       ['公司名称','文本','模糊匹配','<span class="switch-track on" style="display:inline-block;transform:scale(.6)" onclick="this.classList.toggle(\'on\')"></span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>']],
+      [['联系人邮箱','文本','精确匹配','<span class="switch-track on switch-sm" onclick="this.classList.toggle(\'on\')"></span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],
+       ['联系人手机号','文本','精确匹配','<span class="switch-track switch-sm" onclick="this.classList.toggle(\'on\')"></span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],
+       ['公司名称','文本','模糊匹配','<span class="switch-track on switch-sm" onclick="this.classList.toggle(\'on\')"></span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>']],
       {total:5})}
     <div class="card mt-16">
       <div class="card-title mb-8">判重处理与范围</div>
@@ -5837,8 +5837,8 @@ PAGE_RENDERERS['ent-dedup-settings'] = () => {
     </div>`;
   const contactPanel = `<div class="text-sm text-muted mb-12">设置联系人查重字段，避免同一联系人重复建档</div>
     ${renderTable(['字段名称','字段类型','匹配方式','启用','操作'],
-      [['邮箱','文本','精确匹配','<span class="switch-track on" style="display:inline-block;transform:scale(.6)" onclick="this.classList.toggle(\'on\')"></span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
-       ['手机号','文本','精确匹配','<span class="switch-track on" style="display:inline-block;transform:scale(.6)" onclick="this.classList.toggle(\'on\')"></span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>']],
+      [['邮箱','文本','精确匹配','<span class="switch-track on switch-sm" onclick="this.classList.toggle(\'on\')"></span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],
+       ['手机号','文本','精确匹配','<span class="switch-track on switch-sm" onclick="this.classList.toggle(\'on\')"></span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>']],
       {total:2})}`;
   return `
     <div class="page-header"><h1 class="page-title">判重设置</h1></div>
@@ -5852,10 +5852,10 @@ PAGE_RENDERERS['ent-dedup-settings'] = () => {
 
 PAGE_RENDERERS['ent-product-settings'] = () => {
   const g = 'entProdSet';
-  const groupPanel = `<div class="card"><div class="flex-between mb-12"><span class="card-title" style="margin-bottom:0">产品分组管理</span><div class="btn-group"><button class="btn btn-sm">导入分组</button><button class="btn btn-sm btn-primary">+ 新建分组</button></div></div><div class="text-sm text-muted mb-12">产品分组可以对所选产品线的产品进行分类整理，便于业务员检索。</div>${renderTable(['分组名称','可见范围','操作'],[['男块','全部','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text">新建下级分组</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],['女装','全部','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text">新建下级分组</button>'],['辅料','全部','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text">新建下级分组</button>'],['未分组','全部','--']],{total:4})}</div>`;
+  const groupPanel = `<div class="card"><div class="flex-between mb-12"><span class="card-title mb-0">产品分组管理</span><div class="btn-group"><button class="btn btn-sm">导入分组</button><button class="btn btn-sm btn-primary">+ 新建分组</button></div></div><div class="text-sm text-muted mb-12">产品分组可以对所选产品线的产品进行分类整理，便于业务员检索。</div>${renderTable(['分组名称','可见范围','操作'],[['男块','全部','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text">新建下级分组</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],['女装','全部','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text">新建下级分组</button>'],['辅料','全部','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text">新建下级分组</button>'],['未分组','全部','--']],{total:4})}</div>`;
   const syncPanel = `<div class="card"><div class="text-sm text-muted mb-12">配置产品与外部平台（阿里国际站/独立站）的同步规则。</div><div class="grid-2">${renderFormField('同步平台','select',{options:['阿里国际站','独立站','不同步']})}${renderFormField('同步方向','select',{options:['双向','仅上行','仅下行']})}${renderFormField('自动同步','select',{options:['开启','关闭']})}${renderFormField('同步频率','select',{options:['实时','每小时','每天']})}</div><div class="mt-12"><button class="btn btn-primary btn-sm">保存同步设置</button> <button class="btn btn-sm" onclick="showToast('立即同步')">立即同步</button></div></div>`;
   const fieldPanel = `<div class="card"><div class="text-sm text-muted mb-12">配置产品字段的必填、显隐与排序。</div>${renderTable(['字段名称','字段类型','必填','显示','操作'],[['产品名称','文本','是','是','<button class="btn btn-sm btn-text">编辑</button>'],['产品编号','文本','否','是','<button class="btn btn-sm btn-text">编辑</button>'],['离岸价','金额','否','是','<button class="btn btn-sm btn-text">编辑</button>'],['海关编码','文本','否','是','<button class="btn btn-sm btn-text">编辑</button>']],{total:18})}</div>`;
-  const specPanel = `<div class="card"><div class="text-sm text-muted mb-12">配置多规格产品的规格名与规格值模板。</div><div class="flex-between mb-12"><span class="card-title" style="margin-bottom:0">规格模板</span><button class="btn btn-sm btn-primary">+ 新增规格</button></div>${renderTable(['规格名','规格值','使用产品数','操作'],[['颜色','#1,#1B,#2,#4,#6','120','<button class="btn btn-sm btn-text">编辑</button>'],['长度','6,8,10,12,14 inches','86','<button class="btn btn-sm btn-text">编辑</button>'],['尺寸','6*1,6*2,6*1.5','45','<button class="btn btn-sm btn-text">编辑</button>']],{total:3})}</div>`;
+  const specPanel = `<div class="card"><div class="text-sm text-muted mb-12">配置多规格产品的规格名与规格值模板。</div><div class="flex-between mb-12"><span class="card-title mb-0">规格模板</span><button class="btn btn-sm btn-primary">+ 新增规格</button></div>${renderTable(['规格名','规格值','使用产品数','操作'],[['颜色','#1,#1B,#2,#4,#6','120','<button class="btn btn-sm btn-text">编辑</button>'],['长度','6,8,10,12,14 inches','86','<button class="btn btn-sm btn-text">编辑</button>'],['尺寸','6*1,6*2,6*1.5','45','<button class="btn btn-sm btn-text">编辑</button>']],{total:3})}</div>`;
   const layoutPanel = `<div class="card"><div class="text-sm text-muted mb-12">配置产品详情页与列表页布局。</div>${renderTable(['布局区域','是否显示','操作'],[['产品主图','<span class="table-tag success">显示</span>','<button class="btn btn-sm btn-text">编辑</button>'],['产品规格','<span class="table-tag success">显示</span>','<button class="btn btn-sm btn-text">编辑</button>'],['配件清单','<span class="table-tag success">显示</span>','<button class="btn btn-sm btn-text">编辑</button>'],['报关信息','<span class="table-tag">隐藏</span>','<button class="btn btn-sm btn-text">编辑</button>']],{total:4})}</div>`;
   return `
     <div class="page-header"><h1 class="page-title">产品设置</h1></div>
@@ -5868,7 +5868,7 @@ PAGE_RENDERERS['ent-order-settings'] = () => {
   const g = 'entOrderSet';
   const noPanel = `<div class="card"><div class="card-title">订单编号规则</div>${renderFormField('编号前缀', 'text', {value:'2026BONO-'})}${renderFormField('编号格式', 'select', {options:['年份+前缀+序号','前缀+日期+序号','自定义']})}${renderFormField('序号位数', 'select', {options:['4位','5位','6位']})}<div class="text-sm text-muted mt-12">预览: 2026BONO-0001</div><button class="btn btn-primary mt-12">保存设置</button></div>`;
   const fieldPanel = `<div class="card"><div class="text-sm text-muted mb-12">配置销售订单字段的必填与显隐。</div>${renderTable(['字段名称','字段类型','必填','显示','操作'],[['订单名称','文本','是','是','<button class="btn btn-sm btn-text">编辑</button>'],['客户','关联','是','是','<button class="btn btn-sm btn-text">编辑</button>'],['订单金额','金额','是','是','<button class="btn btn-sm btn-text">编辑</button>'],['备注','多行文本','否','是','<button class="btn btn-sm btn-text">编辑</button>']],{total:22})}</div>`;
-  const statusPanel = `<div class="card"><div class="flex-between mb-12"><span class="card-title" style="margin-bottom:0">订单状态管理</span><button class="btn btn-sm btn-primary">+ 新增状态</button></div>${renderTable(['状态名称','排序','是否启用','操作'],[['草稿','1','<span class="table-tag success">启用</span>','<button class="btn btn-sm btn-text">编辑</button>'],['待收款','2','<span class="table-tag success">启用</span>','<button class="btn btn-sm btn-text">编辑</button>'],['待发货','3','<span class="table-tag success">启用</span>','<button class="btn btn-sm btn-text">编辑</button>'],['交易成功','4','<span class="table-tag success">启用</span>','<button class="btn btn-sm btn-text">编辑</button>']],{total:4})}</div>`;
+  const statusPanel = `<div class="card"><div class="flex-between mb-12"><span class="card-title mb-0">订单状态管理</span><button class="btn btn-sm btn-primary">+ 新增状态</button></div>${renderTable(['状态名称','排序','是否启用','操作'],[['草稿','1','<span class="table-tag success">启用</span>','<button class="btn btn-sm btn-text">编辑</button>'],['待收款','2','<span class="table-tag success">启用</span>','<button class="btn btn-sm btn-text">编辑</button>'],['待发货','3','<span class="table-tag success">启用</span>','<button class="btn btn-sm btn-text">编辑</button>'],['交易成功','4','<span class="table-tag success">启用</span>','<button class="btn btn-sm btn-text">编辑</button>']],{total:4})}</div>`;
   const layoutPanel = `<div class="card"><div class="text-sm text-muted mb-12">配置订单详情页 tab 与布局。</div>${renderTable(['Tab 名称','是否显示','操作'],[['订单详情','<span class="table-tag success">显示</span>','<button class="btn btn-sm btn-text">编辑</button>'],['回款单','<span class="table-tag success">显示</span>','<button class="btn btn-sm btn-text">编辑</button>'],['备货','<span class="table-tag success">显示</span>','<button class="btn btn-sm btn-text">编辑</button>'],['出运','<span class="table-tag success">显示</span>','<button class="btn btn-sm btn-text">编辑</button>']],{total:8})}</div>`;
   return `
     <div class="page-header"><h1 class="page-title">销售订单设置</h1></div>
@@ -6041,11 +6041,11 @@ PAGE_RENDERERS['ent-recycle'] = () => {
   const tabs = [{label:'客户'},{label:'线索'},{label:'商机'},{label:'联系人'},{label:'订单'}];
   const cols = ['名称','删除人','删除时间','剩余保留','操作'];
   const rows = {
-    '客户': [['Test Company','Bambi','2026-06-15','25 天','<button class="btn btn-sm btn-primary">恢复</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">永久删除</button>'],['Old Customer Inc','Camila','2026-06-10','20 天','<button class="btn btn-sm btn-primary">恢复</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">永久删除</button>']],
-    '线索': [['Sample Lead','Camila','2026-06-12','23 天','<button class="btn btn-sm btn-primary">恢复</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">永久删除</button>'],['Spam Lead','Bambi','2026-06-05','16 天','<button class="btn btn-sm btn-primary">恢复</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">永久删除</button>']],
-    '商机': [['Test Biz Opp','Jade','2026-06-08','19 天','<button class="btn btn-sm btn-primary">恢复</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">永久删除</button>']],
-    '联系人': [['John Doe','Bambi','2026-06-14','24 天','<button class="btn btn-sm btn-primary">恢复</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">永久删除</button>']],
-    '订单': [['TEST-ORDER-001','Admin','2026-06-11','22 天','<button class="btn btn-sm btn-primary">恢复</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">永久删除</button>']],
+    '客户': [['Test Company','Bambi','2026-06-15','25 天','<button class="btn btn-sm btn-primary">恢复</button> <button class="btn btn-sm btn-text text-danger">永久删除</button>'],['Old Customer Inc','Camila','2026-06-10','20 天','<button class="btn btn-sm btn-primary">恢复</button> <button class="btn btn-sm btn-text text-danger">永久删除</button>']],
+    '线索': [['Sample Lead','Camila','2026-06-12','23 天','<button class="btn btn-sm btn-primary">恢复</button> <button class="btn btn-sm btn-text text-danger">永久删除</button>'],['Spam Lead','Bambi','2026-06-05','16 天','<button class="btn btn-sm btn-primary">恢复</button> <button class="btn btn-sm btn-text text-danger">永久删除</button>']],
+    '商机': [['Test Biz Opp','Jade','2026-06-08','19 天','<button class="btn btn-sm btn-primary">恢复</button> <button class="btn btn-sm btn-text text-danger">永久删除</button>']],
+    '联系人': [['John Doe','Bambi','2026-06-14','24 天','<button class="btn btn-sm btn-primary">恢复</button> <button class="btn btn-sm btn-text text-danger">永久删除</button>']],
+    '订单': [['TEST-ORDER-001','Admin','2026-06-11','22 天','<button class="btn btn-sm btn-primary">恢复</button> <button class="btn btn-sm btn-text text-danger">永久删除</button>']],
   };
   return `
     <div class="page-header"><h1 class="page-title">回收箱</h1></div>
@@ -6061,10 +6061,10 @@ PAGE_RENDERERS['ent-custom-report'] = () => `
   <div class="page-header"><h1 class="page-title">自定义报表</h1><div class="page-actions"><button class="btn btn-primary" onclick="openNewCustomReportModal()">+ 新建报表</button></div></div>
   <div class="text-sm text-muted mb-12">创建自定义报表，灵活配置数据维度和展示方式</div>
   ${renderTable(['报表名称','数据源','图表类型','创建人','最近查看','共享范围','操作'],
-    [['月度销售趋势','订单','折线图','Admin','2026-06-21','全部门','<button class="btn btn-sm btn-text">查看</button> <button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
-     ['客户来源分析','客户','饼图','Admin','2026-06-20','本部门','<button class="btn btn-sm btn-text">查看</button> <button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
-     ['商机转化漏斗','商机','漏斗图','Admin','2026-06-19','全部门','<button class="btn btn-sm btn-text">查看</button> <button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
-     ['业务员业绩排行','订单','柱状图','Admin','2026-06-18','全部门','<button class="btn btn-sm btn-text">查看</button> <button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>']],
+    [['月度销售趋势','订单','折线图','Admin','2026-06-21','全部门','<button class="btn btn-sm btn-text">查看</button> <button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],
+     ['客户来源分析','客户','饼图','Admin','2026-06-20','本部门','<button class="btn btn-sm btn-text">查看</button> <button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],
+     ['商机转化漏斗','商机','漏斗图','Admin','2026-06-19','全部门','<button class="btn btn-sm btn-text">查看</button> <button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],
+     ['业务员业绩排行','订单','柱状图','Admin','2026-06-18','全部门','<button class="btn btn-sm btn-text">查看</button> <button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>']],
     {total:4})}
 `;
 
@@ -6097,11 +6097,11 @@ PAGE_RENDERERS['ent-approval-flow'] = () => `
   ${renderTable(
     ['优先级','审批流名称','审批对象','触发事件','最新编辑时间','状态','操作'],
     [
-      ['⠿ 1','其他审批','自定义','--','2025-08-01','<span class="table-tag success">启用中</span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
-      ['⠿ 1','报价单状态变更审批','报价单','状态变更','2025-06-15','<span class="table-tag success">启用中</span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
-      ['⠿ 1','采购付款单审批','付款单','状态变更','2025-07-20','<span class="table-tag success">启用中</span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
-      ['⠿ 1','回款登记审批','回款登记','状态变更','2025-05-10','<span class="table-tag">已停用</span>','<button class="btn btn-sm btn-text">启用</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
-      ['⠿ 1','费用单审批','费用单','状态变更','2025-04-08','<span class="table-tag">已停用</span>','<button class="btn btn-sm btn-text">启用</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
+      ['⠿ 1','其他审批','自定义','--','2025-08-01','<span class="table-tag success">启用中</span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],
+      ['⠿ 1','报价单状态变更审批','报价单','状态变更','2025-06-15','<span class="table-tag success">启用中</span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],
+      ['⠿ 1','采购付款单审批','付款单','状态变更','2025-07-20','<span class="table-tag success">启用中</span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],
+      ['⠿ 1','回款登记审批','回款登记','状态变更','2025-05-10','<span class="table-tag">已停用</span>','<button class="btn btn-sm btn-text">启用</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],
+      ['⠿ 1','费用单审批','费用单','状态变更','2025-04-08','<span class="table-tag">已停用</span>','<button class="btn btn-sm btn-text">启用</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],
     ],
     { total: 5 }
   )}
@@ -6144,11 +6144,11 @@ PAGE_RENDERERS['ent-task-settings'] = () => `
   ${renderTable(
     ['任务规则名称','任务规则描述','任务类型','创建人','创建时间','最后修改时间','启用状态','操作'],
     [
-      ['24小时内回复阿里询盘','要求及时处理阿里询盘','回复邮件','Admin','2025-01-15','2025-06-20','<span class="switch-track on" style="display:inline-block;transform:scale(.7)" onclick="this.classList.toggle(\'on\')"></span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
-      ['成交客户30天至少跟进1次','对成交客户设置周期性跟进','跟进客户','Admin','2025-01-15','2025-06-18','<span class="switch-track on" style="display:inline-block;transform:scale(.7)" onclick="this.classList.toggle(\'on\')"></span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
-      ['客户邮件在24小时内回复','约束客户邮件回复时效','回复邮件','Admin','2025-02-01','2025-06-15','<span class="switch-track on" style="display:inline-block;transform:scale(.7)" onclick="this.classList.toggle(\'on\')"></span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
-      ['成交客户的邮件12小时内回复','对成交客户邮件设置更严格回复时效','回复邮件','Admin','2025-02-10','2025-06-12','<span class="switch-track on" style="display:inline-block;transform:scale(.7)" onclick="this.classList.toggle(\'on\')"></span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
-      ['询盘客户60天至少跟进1次','对询盘客户设置周期性跟进','跟进客户','Admin','2025-03-10','2025-05-20','<span class="switch-track on" style="display:inline-block;transform:scale(.7)" onclick="this.classList.toggle(\'on\')"></span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text" style="color:var(--danger)">删除</button>'],
+      ['24小时内回复阿里询盘','要求及时处理阿里询盘','回复邮件','Admin','2025-01-15','2025-06-20','<span class="switch-track on switch-sm" onclick="this.classList.toggle(\'on\')"></span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],
+      ['成交客户30天至少跟进1次','对成交客户设置周期性跟进','跟进客户','Admin','2025-01-15','2025-06-18','<span class="switch-track on switch-sm" onclick="this.classList.toggle(\'on\')"></span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],
+      ['客户邮件在24小时内回复','约束客户邮件回复时效','回复邮件','Admin','2025-02-01','2025-06-15','<span class="switch-track on switch-sm" onclick="this.classList.toggle(\'on\')"></span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],
+      ['成交客户的邮件12小时内回复','对成交客户邮件设置更严格回复时效','回复邮件','Admin','2025-02-10','2025-06-12','<span class="switch-track on switch-sm" onclick="this.classList.toggle(\'on\')"></span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],
+      ['询盘客户60天至少跟进1次','对询盘客户设置周期性跟进','跟进客户','Admin','2025-03-10','2025-05-20','<span class="switch-track on switch-sm" onclick="this.classList.toggle(\'on\')"></span>','<button class="btn btn-sm btn-text">编辑</button> <button class="btn btn-sm btn-text text-danger">删除</button>'],
     ],
     { total: 5 }
   )}
@@ -6159,7 +6159,7 @@ PAGE_RENDERERS['ent-task-tpl'] = () => {
   const followTpls = [['久未成交的成交客户15天至少跟进1次','对久未成交的成交客户设置周期跟进'],['询盘客户30天至少跟进1次','对询盘客户设置30天周期跟进'],['目标客户90天未联系提醒','目标客户长时间未联系自动提醒']];
   const mailTpls = [['新业务员收到的客户邮件在12小时内回复','对新业务员邮件设置时效'],['成交客户的邮件6小时内回复','对成交客户邮件设置更严格时效']];
   const tmTpls = [['指定业务员在24小时内回复所有TM消息','对指定业务员 TM 消息设置时效'],['指定业务员在12小时内回复阿里询盘','对阿里询盘 TM 设置时效']];
-  const card = (rows) => rows.map(r => `<div class="card" style="border:1px solid var(--border-light)">
+  const card = (rows) => rows.map(r => `<div class="card">
     <div class="text-bold mb-4">${r[0]}</div>
     <div class="text-sm text-muted mb-8">${r[1]}</div>
     <button class="btn btn-sm btn-text">使用此模版新建任务规则</button>
@@ -6233,7 +6233,7 @@ PAGE_RENDERERS['ai-todo'] = () => {
     </div>
     <div class="card">
       <div class="flex-between mb-12">
-        <div class="card-title" style="margin-bottom:0">今日跟进列表</div>
+        <div class="card-title mb-0">今日跟进列表</div>
         <div class="btn-group">
           ${filterBtns.map(f => `<button class="btn btn-sm ${aiTodoFilter===f.k?'btn-primary':''}" onclick="setAiTodoFilter('${f.k}')">${f.label}(${f.n})</button>`).join('')}
         </div>
@@ -6321,7 +6321,7 @@ PAGE_RENDERERS['ai-lead-pipeline'] = () => {
     <div class="text-sm text-muted mb-16">网站表单 → 自动背调 → 查重去重 → 建档/更新 → 自动分配 → 生成待办，全链路自动化，减少客服与业务重复查重建档。</div>
     <div class="card mb-16">
       <div class="flex-between mb-12">
-        <div class="card-title" style="margin-bottom:0">实时处理示例 · Ana Silva（巴西新询盘）</div>
+        <div class="card-title mb-0">实时处理示例 · Ana Silva（巴西新询盘）</div>
         <div class="btn-group">
           <button class="btn btn-sm" onclick="showToast('已重放该线索处理流程')">▶ 重放链路</button>
           <button class="btn btn-sm btn-primary" onclick="showToast('已确认建档并分配给 Camila')">确认分配</button>
@@ -6627,7 +6627,7 @@ PAGE_RENDERERS['ai-customer-profile'] = () => {
     <div class="text-sm text-muted mb-16">AI 从聊天记录、网站行为、订单数据、客户资料中自动提取并更新客户画像字段，无需人工维护。</div>
     <div class="card mb-16">
       <div class="flex-between mb-12">
-        <div class="card-title" style="margin-bottom:0">客户画像示例 · Ana Silva</div>
+        <div class="card-title mb-0">客户画像示例 · Ana Silva</div>
         <div class="btn-group">
           <button class="btn btn-sm" onclick="navigateTo('customers','customers-detail')">查看客户详情</button>
           <button class="btn btn-sm" onclick="showToast('已人工修正画像字段')">📝 人工修正</button>
@@ -6755,7 +6755,7 @@ PAGE_RENDERERS['ai-reply-coach'] = () => {
       </div>
       <div class="card ai-coach-main">
         <div class="flex-between mb-12">
-          <div class="card-title" style="margin-bottom:0">${current.customer} · 话术工作台</div>
+          <div class="card-title mb-0">${current.customer} · 话术工作台</div>
           <div class="btn-group">
             <button class="btn btn-sm" onclick="showToast('AI 已重新生成话术')">🔄 重新生成</button>
             <button class="btn btn-sm" onclick="showToast('已切换为 WhatsApp 话术')">切换渠道</button>
@@ -6763,7 +6763,7 @@ PAGE_RENDERERS['ai-reply-coach'] = () => {
         </div>
         <div class="grid-2 mb-16">
           <div class="card" style="background:var(--primary-light);margin:0"><div class="text-bold mb-8">为什么跟进</div><div class="text-sm">${current.reason}，AI 判定处于决策窗口期，延迟跟进流失风险高。</div></div>
-          <div class="card" style="margin:0"><div class="text-bold mb-8">客户最近聊了什么</div><div class="text-sm text-secondary">· 询问 500W 储能 MOQ 与交期<br/>· 提到竞对低 5%<br/>· 关心售后质保</div></div>
+          <div class="card m-0"><div class="text-bold mb-8">客户最近聊了什么</div><div class="text-sm text-secondary">· 询问 500W 储能 MOQ 与交期<br/>· 提到竞对低 5%<br/>· 关心售后质保</div></div>
         </div>
         <div class="card mb-16" style="margin:0"><div class="text-bold mb-8">推荐回复方向 <span class="ai-badge">AI</span></div><div class="text-sm">主动让步 2% 并附限时 PI 挽回谈判，强调我方交期与售后优势对冲价格差异。</div></div>
         <div class="form-group">
@@ -6845,8 +6845,8 @@ PAGE_RENDERERS['ai-payment-match'] = () => {
     <div class="card">
       <div class="card-title mb-12">AI 付款识别</div>
       <div class="grid-2">
-        <div class="card" style="margin:0"><div class="text-bold mb-8">📸 付款截图识别</div><div class="text-sm text-muted">上传客户付款截图，AI 自动识别金额、币种、渠道与流水号，并匹配订单。</div><button class="btn btn-sm mt-12" onclick="showToast('请上传付款截图')">上传截图识别</button></div>
-        <div class="card" style="margin:0"><div class="text-bold mb-8">💬 聊天记录识别</div><div class="text-sm text-muted">AI 自动扫描聊天记录中"已付/转账/水单"等关键词，提取付款说明并提示匹配。</div><button class="btn btn-sm mt-12" onclick="showToast('AI 已扫描近 7 天聊天记录，发现 2 条付款说明')">扫描聊天记录</button></div>
+        <div class="card m-0"><div class="text-bold mb-8">📸 付款截图识别</div><div class="text-sm text-muted">上传客户付款截图，AI 自动识别金额、币种、渠道与流水号，并匹配订单。</div><button class="btn btn-sm mt-12" onclick="showToast('请上传付款截图')">上传截图识别</button></div>
+        <div class="card m-0"><div class="text-bold mb-8">💬 聊天记录识别</div><div class="text-sm text-muted">AI 自动扫描聊天记录中"已付/转账/水单"等关键词，提取付款说明并提示匹配。</div><button class="btn btn-sm mt-12" onclick="showToast('AI 已扫描近 7 天聊天记录，发现 2 条付款说明')">扫描聊天记录</button></div>
       </div>
     </div>
   `;
@@ -7105,7 +7105,7 @@ function openMailPrintDrawer() {
     </div>
     <div class="card" style="margin:0 0 16px">
       <div class="flex-between mb-12">
-        <div class="card-title" style="margin-bottom:0">邮件预览（打印效果）</div>
+        <div class="card-title mb-0">邮件预览（打印效果）</div>
         <div class="btn-group">
           <button class="btn btn-sm" onclick="showToast('已切换为 A4 纵向')">A4 纵向</button>
           <button class="btn btn-sm" onclick="showToast('已切换为 A4 横向')">A4 横向</button>
@@ -7121,11 +7121,11 @@ function openMailPrintDrawer() {
         <div class="ai-print-body">Hi,<br/><br/>I would like to request your latest product catalog for hair products. We are particularly interested in:<br/><br/>· Men's toupee<br/>· Women's wigs<br/>· Hair extensions<br/><br/>Please send me the catalog along with your best prices for bulk orders.<br/><br/>Best regards,<br/>John Smith</div>
       </div>
     </div>
-    <div class="card" style="margin:0">
+    <div class="card m-0">
       <div class="card-title mb-12">批量打印</div>
       <div class="grid-2">
-        <div class="card" style="margin:0"><div class="text-bold mb-8">📋 客户沟通明细</div><div class="text-sm text-muted mb-12">按客户汇总一段时间内的全部邮件往来，打印成沟通档案。</div><button class="btn btn-sm btn-primary" onclick="showToast('已生成客户沟通明细 PDF')">生成沟通档案</button></div>
-        <div class="card" style="margin:0"><div class="text-bold mb-8">📦 订单相关邮件</div><div class="text-sm text-muted mb-12">按订单关联的报价/PI/付款确认邮件打包打印，便于随订单归档。</div><button class="btn btn-sm btn-primary" onclick="showToast('已生成订单邮件 PDF 包')">生成订单邮件包</button></div>
+        <div class="card m-0"><div class="text-bold mb-8">📋 客户沟通明细</div><div class="text-sm text-muted mb-12">按客户汇总一段时间内的全部邮件往来，打印成沟通档案。</div><button class="btn btn-sm btn-primary" onclick="showToast('已生成客户沟通明细 PDF')">生成沟通档案</button></div>
+        <div class="card m-0"><div class="text-bold mb-8">📦 订单相关邮件</div><div class="text-sm text-muted mb-12">按订单关联的报价/PI/付款确认邮件打包打印，便于随订单归档。</div><button class="btn btn-sm btn-primary" onclick="showToast('已生成订单邮件 PDF 包')">生成订单邮件包</button></div>
       </div>
     </div>
   `, '<button class="btn" onclick="closeDrawer()">关闭</button>');
@@ -7156,9 +7156,9 @@ PAGE_RENDERERS['mail-status'] = () => {
           ],
           { total:8, pageSize:20 }
         )}</div>`,
-        `<div class="mt-12 text-muted" style="padding:40px;text-align:center">已回复邮件列表（原型占位）</div>`,
-        `<div class="mt-12 text-muted" style="padding:40px;text-align:center">已处理邮件列表（原型占位）</div>`,
-        `<div class="mt-12 text-muted" style="padding:40px;text-align:center">全部邮件列表（原型占位）</div>`,
+        `<div class="mt-12 text-muted placeholder-card">已回复邮件列表（原型占位）</div>`,
+        `<div class="mt-12 text-muted placeholder-card">已处理邮件列表（原型占位）</div>`,
+        `<div class="mt-12 text-muted placeholder-card">全部邮件列表（原型占位）</div>`,
       ])}
       <div class="text-sm text-muted mt-12">💡 规则：业务回复后自动标记「已回复」；业务点击「标记已处理」或 AI 识别无需再跟进后标记「已处理」，自动从待办消失。</div>
     </div>

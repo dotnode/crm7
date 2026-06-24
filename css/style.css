@@ -39,6 +39,7 @@
   --ease-spring: cubic-bezier(.175, .885, .32, 1.275);
   --transition: all .2s var(--ease);
   --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  --ai-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -780,7 +781,7 @@ tbody tr:last-child td { border-bottom: none; }
 /* AI Badge */
 .ai-badge {
   display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px;
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  background: var(--ai-gradient);
   color: #fff; font-size: 10px; border-radius: 12px; font-weight: 600; letter-spacing: .02em;
 }
 
@@ -1072,3 +1073,56 @@ tbody tr:last-child td { border-bottom: none; }
 .ai-map-legend { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 12px; }
 .ai-map-legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); }
 .ai-map-legend-item span { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+/* ===== 统一补全：工具类 / AI 组件 / switch / 占位 ===== */
+/* 间距补档（对齐现有 mb-8/12/16、mt-12 步长，消除幽灵工具类） */
+.m-0 { margin: 0; }
+.mb-0 { margin-bottom: 0; }
+.mb-4 { margin-bottom: 4px; }
+.mb-24 { margin-bottom: 24px; }
+.mt-4 { margin-top: 4px; }
+.mt-8 { margin-top: 8px; }
+.mt-16 { margin-top: 16px; }
+.ml-auto { margin-left: auto; }
+/* 字号 / 颜色补档 */
+.text-xs { font-size: 11px; }
+.text-secondary { color: var(--text-secondary); }
+.text-white { color: #fff; }
+/* display / flex 补档（.flex/.flex-center/.flex-between/.gap-*/.items-center/.text-center 已有，复用） */
+.inline-block { display: inline-block; }
+.flex-wrap { flex-wrap: wrap; }
+.flex-col { flex-direction: column; }
+
+/* AI 渐变统一组件（淘汰内联 #667eea/#764ba2，统一到 --ai-gradient） */
+.btn-ai { background: var(--ai-gradient); color: #fff; border: none; }
+.btn-ai:hover { background: var(--ai-gradient); color: #fff; filter: brightness(1.08); }
+.stat-card-ai { background: var(--ai-gradient); color: #fff; border: none; }
+.stat-card-ai .stat-label, .stat-card-ai .stat-value, .stat-card-ai .stat-sub { color: #fff; }
+.stat-card-ai .stat-label, .stat-card-ai .stat-sub { opacity: .85; }
+
+/* switch 小尺寸（封装表格内 transform:scale(.6) hack，像素等价） */
+.switch-sm { display: inline-block; transform: scale(.6); }
+
+/* 占位 / 空状态统一 */
+.placeholder-card { padding: 40px; text-align: center; color: var(--text-muted); }
+.table-empty { text-align: center; padding: 40px; color: var(--text-muted); }
+
+/* stat-card 彩色左强调边框（统一原内联 border-left） */
+.stat-card.warning { border-left: 3px solid var(--warning); }
+.stat-card.success { border-left: 3px solid var(--success); }
+.stat-card.danger { border-left: 3px solid var(--danger); }
+.stat-card.info { border-left: 3px solid var(--info); }
+/* 右内容区横向内边距（统一原 padding:0 16px） */
+.px-16 { padding-left: 16px; padding-right: 16px; }
+
+/* 状态圆点（统一原内联小圆点） */
+.status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+.status-dot.danger { background: var(--danger); }
+.status-dot.warning { background: var(--warning); }
+.status-dot.success { background: var(--success); }
+.status-dot.primary { background: var(--primary); }
+/* 扁平卡（仅边框、无阴影） */
+.card-flat { box-shadow: none; }
+/* 组件配色变体（统一原内联覆盖色） */
+.flow-node.primary { background: var(--primary-light); color: var(--primary); }
+.contact-tag.success { background: var(--success-light); color: var(--success); }
