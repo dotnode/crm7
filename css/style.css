@@ -395,6 +395,37 @@ tbody tr:last-child td { border-bottom: none; }
 .modal-body { font-size: 13px; margin-bottom: 24px; color: var(--text-secondary); line-height: 1.6; }
 .modal-footer { display: flex; justify-content: flex-end; gap: 10px; }
 
+/* Toast */
+.toast-wrap {
+  position: fixed; top: 24px; left: 50%; transform: translateX(-50%);
+  z-index: 500; display: flex; flex-direction: column; align-items: center; gap: 10px;
+  pointer-events: none;
+}
+.toast {
+  display: flex; align-items: center; gap: 10px;
+  max-width: 86vw; min-width: 240px; padding: 12px 18px;
+  background: var(--bg-white); border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-xl);
+  font-size: 13px; color: var(--text); line-height: 1.5;
+  opacity: 0; transform: translateY(-12px) scale(.96);
+  transition: opacity .22s var(--ease), transform .22s var(--ease-spring);
+  pointer-events: auto;
+}
+.toast.show { opacity: 1; transform: translateY(0) scale(1); }
+.toast-icon {
+  flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: #fff;
+}
+.toast-msg { flex: 1; word-break: break-word; }
+.toast-info    .toast-icon { background: var(--primary); }
+.toast-success .toast-icon { background: var(--success); }
+.toast-warn    .toast-icon { background: var(--warning); }
+.toast-error   .toast-icon { background: var(--danger); }
+.toast-info    { border-color: rgba(var(--primary-rgb), .25); }
+.toast-warn    { border-color: rgba(234, 140, 0, .28); }
+.toast-error   { border-color: rgba(220, 38, 38, .28); }
+
 /* Form */
 .form-group { margin-bottom: 18px; }
 .form-label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 600; }
@@ -844,6 +875,51 @@ tbody tr:last-child td { border-bottom: none; }
 .mail-read-body p { margin-bottom: 10px; }
 .mail-sales-assistant { border: 1px solid var(--border-light); border-radius: var(--radius); padding: 14px; }
 .ai-analysis-box { background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%); border-radius: var(--radius-sm); padding: 12px; }
+.analysis-summary-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.analysis-summary-item { padding: 12px; border: 1px solid var(--border-light); border-radius: var(--radius-sm); background: var(--bg-white); border-left: 3px solid var(--border); }
+.analysis-summary-item.primary { border-left-color: var(--primary); }
+.analysis-summary-item.success { border-left-color: var(--success); }
+.analysis-summary-item.warning { border-left-color: var(--warning); }
+.analysis-summary-item.danger { border-left-color: var(--danger); }
+.analysis-summary-label { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
+.analysis-summary-value { font-size: 18px; font-weight: 800; color: var(--text); letter-spacing: -.02em; }
+.analysis-summary-sub { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+.analysis-chart-box { min-height: 160px; padding: 14px; border: 1px solid var(--border-light); border-radius: var(--radius); background: linear-gradient(135deg,#fbfcff,#f6f8fb); }
+.analysis-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 12px; margin-top: 12px; }
+.analysis-chart-note { margin-top: 10px; font-size: 12px; color: var(--text-muted); text-align: left; }
+.analysis-line-chart { position: relative; height: 150px; padding: 8px 6px 22px; }
+.analysis-line-chart svg { width: 100%; height: 96px; overflow: visible; }
+.analysis-line-chart polyline { fill: none; stroke: var(--primary); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 4px 6px rgba(var(--primary-rgb),.18)); }
+.analysis-line-points { position: absolute; inset: 8px 6px 44px; }
+.analysis-line-points span { position: absolute; width: 9px; height: 9px; border-radius: 50%; background: #fff; border: 2px solid var(--primary); transform: translate(-50%,-50%); }
+.analysis-axis-labels { position: absolute; left: 6px; right: 6px; bottom: 0; height: 18px; }
+.analysis-axis-labels span { position: absolute; transform: translateX(-50%); font-size: 10px; color: var(--text-muted); }
+.analysis-rank-list { display: flex; flex-direction: column; gap: 12px; }
+.analysis-rank-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 12px; font-weight: 600; }
+.analysis-rank-head b { color: var(--primary); white-space: nowrap; }
+.analysis-rank-sub { font-size: 11px; color: var(--text-muted); margin: 3px 0 6px; }
+.analysis-stack-bar { display: flex; height: 34px; border-radius: 999px; overflow: hidden; background: var(--border-light); margin: 24px 0 16px; }
+.analysis-stack-legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--text-secondary); }
+.analysis-stack-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.analysis-stack-legend i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.analysis-bar-chart { height: 150px; display: flex; align-items: flex-end; justify-content: space-around; gap: 12px; padding-top: 8px; flex-wrap: wrap; }
+.analysis-bar-item { flex: 1; min-width: 48px; height: 122px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; }
+.analysis-bar-value { font-size: 12px; font-weight: 700; margin-bottom: 5px; }
+.analysis-bar-track { width: 28px; height: 82px; display: flex; align-items: flex-end; background: var(--border-light); border-radius: 999px; overflow: hidden; }
+.analysis-bar-track div { width: 100%; border-radius: 999px 999px 0 0; }
+.analysis-bar-label { font-size: 11px; color: var(--text-muted); margin-top: 6px; }
+.analysis-mail-chart { height: 150px; display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.analysis-mail-month { flex: 1; min-width: 42px; text-align: center; font-size: 10px; color: var(--text-muted); }
+.analysis-mail-bars { height: 88px; display: flex; align-items: flex-end; justify-content: center; gap: 4px; margin-bottom: 6px; }
+.analysis-mail-bars span { width: 12px; border-radius: 4px 4px 0 0; }
+.analysis-mail-bars span:first-child { background: var(--primary); }
+.analysis-mail-bars span:last-child { background: var(--success); }
+.analysis-funnel { display: flex; flex-direction: column; gap: 10px; }
+.analysis-funnel-row { display: grid; grid-template-columns: 54px 1fr 64px; align-items: center; gap: 8px; font-size: 12px; }
+.analysis-funnel-label { color: var(--text-secondary); }
+.analysis-funnel-bar { height: 18px; background: var(--border-light); border-radius: 999px; overflow: hidden; }
+.analysis-funnel-bar span { display: block; height: 100%; background: linear-gradient(90deg,var(--primary),#a78bfa); border-radius: 999px; }
+.analysis-funnel-val { color: var(--text-muted); text-align: right; }
 .mail-receipt { margin-top: 12px; }
 .items-center { align-items: center; }
 
@@ -915,3 +991,84 @@ tbody tr:last-child td { border-bottom: none; }
 .fn-status.done { color: var(--success); }
 .fn-status.current { color: var(--primary); }
 .fn-arrow { color: var(--text-muted); padding: 0 8px; flex-shrink: 0; }
+
+/* ===== AI 业务助理 ===== */
+.table-tag.muted { background: #f3f4f6; color: var(--text-muted); }
+.table-tag.info { background: #e0f2fe; color: #0369a1; }
+
+.stat-card .stat-icon { font-size: 26px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: var(--bg); border-radius: var(--radius); flex-shrink: 0; }
+.stat-card { display: flex; align-items: center; gap: 14px; }
+.stat-card.stat-primary .stat-icon { background: var(--primary-light); }
+.stat-card.stat-success .stat-icon { background: var(--success-light); }
+.stat-card.stat-warning .stat-icon { background: var(--warning-light); }
+.stat-card.stat-danger .stat-icon { background: var(--danger-light); }
+
+/* AI 待办卡片 */
+.ai-todo-card { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 16px; border: 1px solid var(--border-light); border-radius: var(--radius); margin-bottom: 10px; transition: var(--transition); }
+.ai-todo-card:hover { border-color: rgba(var(--primary-rgb),.3); box-shadow: var(--shadow); }
+.ai-todo-card.danger { border-left: 3px solid var(--danger); }
+.ai-todo-card.warning { border-left: 3px solid var(--warning); }
+.ai-todo-card.success { border-left: 3px solid var(--success); }
+.ai-todo-card.primary { border-left: 3px solid var(--primary); }
+.ai-todo-card.info { border-left: 3px solid var(--info); }
+.ai-todo-card.muted { border-left: 3px solid var(--text-muted); }
+.ai-todo-left { display: flex; gap: 12px; flex: 1; min-width: 0; }
+.ai-todo-icon { font-size: 24px; flex-shrink: 0; }
+.ai-todo-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ai-todo-suggest { margin-top: 8px; padding: 8px 12px; background: var(--primary-light); border-radius: var(--radius-sm); font-size: 12px; color: var(--text-secondary); }
+.ai-todo-actions { margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
+.ai-todo-prio { font-size: 18px; font-weight: 800; color: var(--text-muted); flex-shrink: 0; }
+
+/* AI 链路 */
+.ai-pipeline { display: flex; flex-direction: column; gap: 4px; }
+.ai-pipeline-step { display: flex; gap: 14px; }
+.ai-pipeline-node { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
+.ai-pipeline-icon { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; background: var(--bg); border: 2px solid var(--border); }
+.ai-pipeline-step.done .ai-pipeline-icon { background: var(--success-light); border-color: var(--success); }
+.ai-pipeline-step.active .ai-pipeline-icon { background: var(--primary-light); border-color: var(--primary); box-shadow: 0 0 0 4px rgba(var(--primary-rgb),.12); }
+.ai-pipeline-line { width: 2px; flex: 1; background: var(--border); margin: 4px 0; min-height: 24px; }
+.ai-pipeline-step.done .ai-pipeline-line { background: var(--success); }
+.ai-pipeline-body { padding-bottom: 20px; flex: 1; }
+.ai-pipeline-title { font-weight: 600; display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
+.ai-pipeline-num { font-size: 11px; background: var(--text-muted); color: #fff; border-radius: 50%; width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; }
+.ai-pipeline-detail { margin-top: 6px; padding: 8px 12px; background: var(--bg); border-radius: var(--radius-sm); font-size: 12px; color: var(--text-secondary); }
+
+/* 商机阶段流 */
+.ai-stage-flow { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.ai-stage-node { padding: 8px 14px; background: var(--primary-light); color: var(--primary); border-radius: var(--radius-sm); font-size: 12px; font-weight: 600; }
+.ai-stage-arrow { color: var(--text-muted); }
+
+/* 收款同步行 */
+.ai-sync-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border-light); border-radius: var(--radius-sm); margin-bottom: 8px; }
+
+/* AI 话术工作台 */
+.ai-coach-layout { display: grid; grid-template-columns: 260px 1fr; gap: 14px; }
+.ai-coach-list { padding: 16px; }
+.ai-coach-item { padding: 12px; border: 1px solid var(--border-light); border-radius: var(--radius-sm); margin-bottom: 8px; cursor: pointer; transition: var(--transition); }
+.ai-coach-item:hover { border-color: rgba(var(--primary-rgb),.3); }
+.ai-coach-item.active { border-color: var(--primary); background: var(--primary-light); }
+.ai-coach-main { padding: 16px; }
+
+/* AI 知识库文档 */
+.ai-kb-doc:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+
+/* AI 字段 chips */
+.ai-field-chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+/* AI 邮件打印预览 */
+.ai-print-preview { border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; background: #fff; }
+.ai-print-head { font-size: 16px; font-weight: 700; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid var(--primary); }
+.ai-print-row { font-size: 13px; margin-bottom: 6px; }
+.ai-print-row span { color: var(--text-muted); margin-right: 8px; }
+.ai-print-preview hr { border: none; border-top: 1px dashed var(--border); margin: 16px 0; }
+.ai-print-body { font-size: 13px; line-height: 1.8; color: var(--text); }
+
+@media (max-width: 900px) {
+  .ai-coach-layout { grid-template-columns: 1fr; }
+}
+
+/* AI 地图 */
+.ai-map svg { border-radius: var(--radius); }
+.ai-map-legend { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 12px; }
+.ai-map-legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); }
+.ai-map-legend-item span { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
